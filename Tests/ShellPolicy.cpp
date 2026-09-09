@@ -10,6 +10,7 @@ int main()
     assert(shouldStartRecoveryShell(PlasmaRunResult::Unavailable));
     assert(shouldStartRecoveryShell(PlasmaRunResult::LaunchFailed));
     assert(shouldStartRecoveryShell(PlasmaRunResult::ExitedDuringWarmup));
-    assert(shouldStartRecoveryShell(PlasmaRunResult::ExitedAfterWarmup));
+    assert(shouldStartRecoveryShell(PlasmaRunResult::CrashedAfterWarmup));
+    assert(!shouldStartRecoveryShell(PlasmaRunResult::ExitedCleanlyAfterWarmup));
     return 0;
 }
