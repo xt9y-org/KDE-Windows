@@ -9,6 +9,7 @@
 #include "Platform/Windows/WindowsAudioSystem.hpp"
 #include "Platform/Windows/WindowsNetworkSystem.hpp"
 #include "Platform/Windows/WindowsPowerSystem.hpp"
+#include "Platform/Windows/WindowsShortcutSystem.hpp"
 #include "Platform/Windows/WindowsTraySystem.hpp"
 #include "Platform/Windows/WindowsWindowSystem.hpp"
 
@@ -67,6 +68,7 @@ public:
     [[nodiscard]] int networkSignal() const { return networkState_.signalQuality; }
 
     Q_INVOKABLE QVariantList searchApplications(const QString& query) const;
+    Q_INVOKABLE bool runCommand(const QString& command);
     Q_INVOKABLE void activateWindow(qulonglong id);
     Q_INVOKABLE void minimizeWindow(qulonglong id);
     Q_INVOKABLE void toggleMaximizeWindow(qulonglong id);
@@ -96,6 +98,8 @@ signals:
     void clipboardChanged();
     void systemStatusChanged();
     void clockChanged();
+    void runnerRequested();
+    void clipboardRequested();
 
 private:
     void refreshWindows();
@@ -120,6 +124,7 @@ private:
     WindowsAudioSystem audioSystem_;
     WindowsPowerSystem powerSystem_;
     WindowsNetworkSystem networkSystem_;
+    WindowsShortcutSystem shortcutSystem_;
     AudioState audioState_;
     PowerState powerState_;
     NetworkState networkState_;
