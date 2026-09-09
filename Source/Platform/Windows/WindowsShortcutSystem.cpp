@@ -7,6 +7,7 @@ namespace kde_windows
 namespace
 {
 constexpr wchar_t kShortcutClass[] = L"KDEWindowsShortcutHost";
+WindowsShortcutSystem* g_shortcutSystem = nullptr;
 }
 
 WindowsShortcutSystem::~WindowsShortcutSystem()
@@ -49,11 +50,26 @@ bool WindowsShortcutSystem::start(Callback callback)
 
     const bool runner = RegisterHotKey(window_, kRunnerHotkeyId, MOD_ALT | MOD_NOREPEAT, VK_SPACE) != FALSE;
     const bool clipboard = RegisterHotKey(window_, kClipboardHotkeyId, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, 'V') != FALSE;
-    return runner || clipboard;
+
+    g_shortcutSystem = this;
+    keyboardHook_ = SetWindowsHookExW(WH_KEYBOARD_LL, &WindowsShortcutSystem::keyboardProc, instance, 0);
+    if (!runner && !clipboard && !keyboardHook_) {
+        stop();
+        return false;
+    }
+    return true;
 }
 
 void WindowsShortcutSystem::stop()
 {
+    if (keyboardHook_) {
+        UnhookWindowsHookEx(keyboardHook_);
+        keyboardHook_ = nullptr;
+    }
+    if (g_shortcutSystem == this)
+        g_shortcutSystem = nullptr;
+    switching_ = false;
+
     if (window_) {
         UnregisterHotKey(window_, kRunnerHotkeyId);
         UnregisterHotKey(window_, kClipboardHotkeyId);
@@ -86,5 +102,35 @@ LRESULT CALLBACK WindowsShortcutSystem::windowProc(HWND window, UINT message, WP
     }
 
     return DefWindowProcW(window, message, wparam, lparam);
+}
+
+LRESULT CALLBACK WindowsShortcutSystem::keyboardProc(int code, WPARAM wparam, LPARAM lparam)
+{
+    WindowsShortcutSystem* self = g_shortcutSystem;
+    if (code != HC_ACTION || !self || !self->callback_)
+        return CallNextHookEx(nullptr, code, wparam, lparam);
+
+    const auto* key = reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
+    if (!key)
+        return CallNextHookEx(nullptr, code, wparam, lparam);
+
+    const bool keyDown = wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN;
+    const bool keyUp = wparam == WM_KEYUP || wparam == WM_SYSKEYUP;
+
+    if (keyDown && key->vkCode == VK_TAB && (GetAsyncKeyState(VK_MENU) & 0x8000)) {
+        const bool reverse = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
+        self->switching_ = true;
+        self->callback_(reverse ? ShortcutAction::WindowPrevious : ShortcutAction::WindowNext);
+        return 1;
+    }
+
+    if (self->switching_ && keyUp &&
+        (key->vkCode == VK_MENU || key->vkCode == VK_LMENU || key->vkCode == VK_RMENU)) {
+        self->switching_ = false;
+        self->callback_(ShortcutAction::WindowCommit);
+        return 1;
+    }
+
+    return CallNextHookEx(nullptr, code, wparam, lparam);
 }
 }
