@@ -5,6 +5,7 @@
 #include <windows.h>
 
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace kde_windows
