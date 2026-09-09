@@ -20,6 +20,12 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsApplications.hpp
     ../Platform/Windows/WindowsTraySystem.cpp
     ../Platform/Windows/WindowsTraySystem.hpp
+    ../Platform/Windows/WindowsAudioSystem.cpp
+    ../Platform/Windows/WindowsAudioSystem.hpp
+    ../Platform/Windows/WindowsPowerSystem.cpp
+    ../Platform/Windows/WindowsPowerSystem.hpp
+    ../Platform/Windows/WindowsNetworkSystem.cpp
+    ../Platform/Windows/WindowsNetworkSystem.hpp
 )
 
 target_include_directories(plasmashell PRIVATE ..)
@@ -33,6 +39,7 @@ qt_add_qml_module(plasmashell
         qml/Panel.qml
         qml/Launcher.qml
         qml/Notifications.qml
+        qml/StatusArea.qml
 )
 
 target_compile_definitions(plasmashell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -50,6 +57,8 @@ target_link_libraries(plasmashell PRIVATE
     ole32
     propsys
     uuid
+    PowrProf
+    wlanapi
 )
 
 set_target_properties(plasmashell PROPERTIES
