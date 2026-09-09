@@ -4,14 +4,20 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 New-Item -ItemType Directory -Force -Path build | Out-Null
 
-$source = 'Source\Shell.cpp'
+$sources = @(
+    'Source\Shell.cpp',
+    'Source\Platform\Windows\WindowsWindowSystem.cpp',
+    'Source\Platform\Windows\WindowsApplications.cpp'
+)
 $output = 'build\KDEWindowsShell.exe'
+$msvcLibraries = @('user32.lib', 'gdi32.lib', 'shell32.lib', 'dwmapi.lib', 'ole32.lib', 'propsys.lib')
 
 function Invoke-MSVC {
     param([string]$Compiler)
 
-    & $Compiler /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /I Source `
-        $source /Fe:$output /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib shell32.lib
+    $args = @('/nologo', '/std:c++20', '/O2', '/EHsc', '/DUNICODE', '/D_UNICODE', '/I', 'Source') +
+            $sources + @('/Fe:' + $output, '/link', '/SUBSYSTEM:WINDOWS') + $msvcLibraries
+    & $Compiler @args
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
@@ -33,9 +39,11 @@ if (Test-Path $vswhere) {
     if ($vs) {
         $devcmd = Join-Path $vs 'Common7\Tools\VsDevCmd.bat'
         $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
+        $quotedSources = ($sources | ForEach-Object { '"' + $_ + '"' }) -join ' '
+        $libraries = $msvcLibraries -join ' '
         $command = '"' + $devcmd + '" -no_logo -arch=' + $arch + ' -host_arch=' + $arch +
                    ' && cl.exe /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /I Source ' +
-                   $source + ' /Fe:' + $output + ' /link /SUBSYSTEM:WINDOWS user32.lib gdi32.lib shell32.lib'
+                   $quotedSources + ' /Fe:' + $output + ' /link /SUBSYSTEM:WINDOWS ' + $libraries
         & cmd.exe /d /s /c $command
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         exit 0
@@ -44,8 +52,8 @@ if (Test-Path $vswhere) {
 
 $gpp = Get-Command g++.exe -ErrorAction SilentlyContinue
 if ($gpp) {
-    & $gpp.Source -std=c++20 -O2 -municode -mwindows -DUNICODE -D_UNICODE -I Source `
-        $source -o $output -luser32 -lgdi32 -lshell32
+    & $gpp.Source -std=c++20 -O2 -municode -mwindows -DUNICODE -D_UNICODE -I Source @sources `
+        -o $output -luser32 -lgdi32 -lshell32 -ldwmapi -lole32 -lpropsys -luuid
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
     exit 0
 }
