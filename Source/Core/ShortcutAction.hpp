@@ -7,6 +7,9 @@ enum class ShortcutAction
     None,
     Runner,
     Clipboard,
+    WindowNext,
+    WindowPrevious,
+    WindowCommit,
 };
 
 inline constexpr int kRunnerHotkeyId = 1;
