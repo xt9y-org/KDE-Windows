@@ -199,8 +199,9 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $cmake.Source --build $plasmaBuild --config Release
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$plasmaExe = Join-Path $plasmaRoot 'bin\plasmashell.exe'
-$konsoleExe = Join-Path $plasmaRoot 'bin\konsole.exe'
+$plasmaBin = Join-Path $plasmaRoot 'bin'
+$plasmaExe = Join-Path $plasmaBin 'plasmashell.exe'
+$konsoleExe = Join-Path $plasmaBin 'konsole.exe'
 if (-not (Test-Path $plasmaExe)) {
     throw "Plasma shell build did not produce $plasmaExe"
 }
@@ -224,15 +225,15 @@ $craftRuntimeRoot = if ($env:KDEROOT) { $env:KDEROOT } else { $craftPrefix }
 $craftBin = Join-Path $craftRuntimeRoot 'bin'
 Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'qml') (Join-Path $plasmaRoot 'qml')
 Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'plugins') (Join-Path $plasmaRoot 'plugins')
-Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'bin\data') (Join-Path $plasmaRoot 'bin\data')
+Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'bin\data') (Join-Path $plasmaBin 'data')
 Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'share') (Join-Path $plasmaRoot 'share')
 Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'libexec') (Join-Path $plasmaRoot 'libexec')
 
 Get-ChildItem $craftBin -Filter '*.dll' -File -ErrorAction SilentlyContinue |
-    ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
+    ForEach-Object { Copy-Item -Force $_.FullName $plasmaBin }
 Get-ChildItem $craftBin -Filter '*.exe' -File -ErrorAction SilentlyContinue |
     ForEach-Object {
-        $destination = Join-Path $plasmaRoot 'bin' $_.Name
+        $destination = Join-Path $plasmaBin $_.Name
         if (-not (Test-Path $destination)) { Copy-Item -Force $_.FullName $destination }
     }
 
@@ -245,10 +246,11 @@ if (-not $dolphinSource) {
     throw "Dolphin is registered as installed by Craft, but dolphin.exe was not found below $craftBin."
 }
 
-Copy-CraftRuntimeDirectory -Executable $dolphinSource -Destination (Join-Path $plasmaRoot 'bin')
-Copy-Item -Force $dolphinSource (Join-Path $plasmaRoot 'bin\dolphin.exe')
+Copy-CraftRuntimeDirectory -Executable $dolphinSource -Destination $plasmaBin
+$dolphinExe = Join-Path $plasmaBin 'dolphin.exe'
+Copy-Item -Force $dolphinSource $dolphinExe
 
-if (-not (Test-Path (Join-Path $plasmaRoot 'bin\dolphin.exe'))) {
+if (-not (Test-Path $dolphinExe)) {
     throw 'Dolphin was not staged into the Plasma runtime.'
 }
 if (-not (Test-Path $konsoleExe)) {
@@ -257,4 +259,4 @@ if (-not (Test-Path $konsoleExe)) {
 
 Write-Host "Plasma Windows runtime: $plasmaExe"
 Write-Host "Konsole Windows frontend: $konsoleExe"
-Write-Host "Dolphin Windows runtime: $(Join-Path $plasmaRoot 'bin\dolphin.exe')"
+Write-Host "Dolphin Windows runtime: $dolphinExe"
