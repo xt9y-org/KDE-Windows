@@ -18,6 +18,8 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsWindowSystem.hpp
     ../Platform/Windows/WindowsApplications.cpp
     ../Platform/Windows/WindowsApplications.hpp
+    ../Platform/Windows/WindowsDesktopSystem.cpp
+    ../Platform/Windows/WindowsDesktopSystem.hpp
     ../Platform/Windows/WindowsTraySystem.cpp
     ../Platform/Windows/WindowsTraySystem.hpp
     ../Platform/Windows/WindowsAudioSystem.cpp
