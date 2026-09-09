@@ -92,7 +92,7 @@ Item {
         onClipboardRequested: root.showClipboard()
         onNotificationCenterRequested: root.showNotificationCenter()
         onSettingsRequested: function(page) { root.showSettings(page) }
-        Component.onCompleted: PlasmaBackend.registerPanel(panel)
+        Component.onCompleted: PanelBridge.registerPanel(panel)
     }
 
     Launcher {
