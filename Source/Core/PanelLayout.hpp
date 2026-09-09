@@ -51,3 +51,4 @@ inline PanelLayout panelLayout(int width, int height, std::size_t taskCount)
     }
     return layout;
 }
+}
