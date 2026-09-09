@@ -28,4 +28,6 @@ Item {
         panelY: panel.y
         onDismissed: root.launcherVisible = false
     }
+
+    Notifications {}
 }
