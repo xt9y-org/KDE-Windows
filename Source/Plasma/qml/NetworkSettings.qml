@@ -6,9 +6,27 @@ ColumnLayout {
     id: root
     spacing: 14
     property var state: ({ "enabled": false, "connected": false, "name": "", "networks": [] })
+    property var pendingNetwork: null
 
     function refresh() {
         state = PlasmaBackend.wifiState()
+    }
+
+    function connectNetwork(network) {
+        if (network.known) {
+            PlasmaBackend.connectWifi(network.id)
+            refresh()
+            return
+        }
+        if (!network.secure) {
+            PlasmaBackend.connectWifiPassword(network.id, "")
+            refresh()
+            return
+        }
+        pendingNetwork = network
+        passwordField.text = ""
+        passwordDialog.open()
+        passwordField.forceActiveFocus()
     }
 
     Component.onCompleted: refresh()
@@ -18,6 +36,37 @@ ColumnLayout {
         running: root.visible
         repeat: true
         onTriggered: root.refresh()
+    }
+
+    Dialog {
+        id: passwordDialog
+        modal: true
+        anchors.centerIn: Overlay.overlay
+        title: root.pendingNetwork ? "Connect to " + root.pendingNetwork.name : "Connect to Wi-Fi"
+        standardButtons: Dialog.Ok | Dialog.Cancel
+        onAccepted: {
+            if (root.pendingNetwork)
+                PlasmaBackend.connectWifiPassword(root.pendingNetwork.id, passwordField.text)
+            root.pendingNetwork = null
+            root.refresh()
+        }
+        onRejected: root.pendingNetwork = null
+
+        contentItem: ColumnLayout {
+            spacing: 10
+            Label {
+                text: "Password"
+                color: "#eff0f1"
+            }
+            TextField {
+                id: passwordField
+                Layout.preferredWidth: 340
+                echoMode: TextInput.Password
+                selectByMouse: true
+                placeholderText: "8–63 characters or 64 hex digits"
+                Keys.onReturnPressed: passwordDialog.accept()
+            }
+        }
     }
 
     Label { text: "Network"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
@@ -84,12 +133,9 @@ ColumnLayout {
                     }
                     Label { text: modelData.signal + "%"; color: "#c4c9cd" }
                     Button {
-                        visible: !modelData.connected && modelData.known
-                        text: "Connect"
-                        onClicked: {
-                            PlasmaBackend.connectWifi(modelData.id)
-                            root.refresh()
-                        }
+                        visible: !modelData.connected
+                        text: modelData.known ? "Connect" : (modelData.secure ? "Password…" : "Connect")
+                        onClicked: root.connectNetwork(modelData)
                     }
                 }
             }
@@ -97,7 +143,7 @@ ColumnLayout {
     }
 
     Label {
-        text: "Saved Windows WLAN profiles connect directly. Unsaved secured networks are not persisted by KDE-Windows."
+        text: "Open, WPA, WPA2 and WPA3-Personal networks can be saved and connected directly. Enterprise authentication remains managed by Windows WLAN policy."
         color: "#808990"
         font.pixelSize: 11
         Layout.fillWidth: true
