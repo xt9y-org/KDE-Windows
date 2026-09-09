@@ -58,6 +58,7 @@ qt_add_qml_module(plasmashell
         qml/Main.qml
         qml/Desktop.qml
         qml/Panel.qml
+        qml/FavoriteStrip.qml
         qml/Launcher.qml
         qml/Notifications.qml
         qml/NotificationCenter.qml
