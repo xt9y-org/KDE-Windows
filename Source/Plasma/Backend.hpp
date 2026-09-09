@@ -115,6 +115,7 @@ public:
     Q_INVOKABLE bool connectWifiPassword(const QString& networkId, const QString& password);
     Q_INVOKABLE bool disconnectWifi();
     Q_INVOKABLE QVariantMap bluetoothState() const;
+    Q_INVOKABLE QVariantMap bluetoothScan() const;
     Q_INVOKABLE bool setBluetoothDiscoverable(bool enabled);
     Q_INVOKABLE bool pairBluetooth(const QString& deviceId);
     Q_INVOKABLE bool removeBluetooth(const QString& deviceId);
