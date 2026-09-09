@@ -52,10 +52,10 @@ function Invoke-MSVC {
             '/DUNICODE',
             '/D_UNICODE',
             '/DNOMINMAX',
-            '/I"Source"',
+            '/ISource',
             '/c',
-            '"' + $source + '"',
-            '/Fo"' + $object + '"'
+            $source,
+            '/Fo' + $object
         )
         Set-Content -LiteralPath $compileResponse -Encoding ASCII -Value $compileOptions
         $compileResponseArg = '@' + $compileResponse
@@ -69,8 +69,8 @@ function Invoke-MSVC {
     $linkOptions = @(
         '/nologo',
         '/SUBSYSTEM:WINDOWS',
-        '/OUT:"' + $output + '"'
-    ) + ($objects | ForEach-Object { '"' + $_ + '"' }) + $msvcLibraries
+        '/OUT:' + $output
+    ) + $objects + $msvcLibraries
     Set-Content -LiteralPath $linkResponse -Encoding ASCII -Value $linkOptions
     $linkResponseArg = '@' + $linkResponse
     & $linker $linkResponseArg
