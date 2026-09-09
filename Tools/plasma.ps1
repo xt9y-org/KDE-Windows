@@ -69,6 +69,35 @@ function Copy-DirectoryContents {
     Copy-Item -Recurse -Force (Join-Path $Source '*') $Destination
 }
 
+function Find-CraftRuntimeExecutable {
+    param([string]$CraftRoot, [string]$Name)
+
+    $binRoot = Join-Path $CraftRoot 'bin'
+    $direct = Join-Path $binRoot $Name
+    if (Test-Path -LiteralPath $direct -PathType Leaf) {
+        return (Resolve-Path -LiteralPath $direct).Path
+    }
+    if (-not (Test-Path -LiteralPath $binRoot -PathType Container)) {
+        return $null
+    }
+
+    $candidate = Get-ChildItem -LiteralPath $binRoot -Filter $Name -File -Recurse -ErrorAction SilentlyContinue |
+        Sort-Object FullName |
+        Select-Object -First 1
+    if ($candidate) { return $candidate.FullName }
+    return $null
+}
+
+function Copy-CraftRuntimeDirectory {
+    param([string]$Executable, [string]$Destination)
+
+    $sourceDirectory = Split-Path -Parent $Executable
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    Get-ChildItem -LiteralPath $sourceDirectory -File -ErrorAction SilentlyContinue |
+        Where-Object { $_.Extension -ieq '.exe' -or $_.Extension -ieq '.dll' } |
+        ForEach-Object { Copy-Item -Force $_.FullName $Destination }
+}
+
 function Remove-CraftEnvironmentConflicts {
     foreach ($name in @('MAKEFLAGS', 'MFLAGS', 'MAKE', 'NMAKEFLAGS')) {
         Remove-Item "Env:$name" -ErrorAction SilentlyContinue
@@ -188,20 +217,32 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $deploy.Source --release --qmldir (Join-Path $root 'Source\Terminal\qml') $konsoleExe
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$craftRoot = if ($env:CraftRoot) { $env:CraftRoot } else { Join-Path $craftPrefix 'craft' }
+$craftRoot = if ($env:CraftRoot) { $env:CraftRoot } else { $craftPrefix }
+$craftBin = Join-Path $craftRoot 'bin'
 Copy-DirectoryContents (Join-Path $craftRoot 'qml') (Join-Path $plasmaRoot 'qml')
 Copy-DirectoryContents (Join-Path $craftRoot 'plugins') (Join-Path $plasmaRoot 'plugins')
 Copy-DirectoryContents (Join-Path $craftRoot 'bin\data') (Join-Path $plasmaRoot 'bin\data')
 Copy-DirectoryContents (Join-Path $craftRoot 'share') (Join-Path $plasmaRoot 'share')
 Copy-DirectoryContents (Join-Path $craftRoot 'libexec') (Join-Path $plasmaRoot 'libexec')
 
-Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.dll' -File -ErrorAction SilentlyContinue |
+Get-ChildItem $craftBin -Filter '*.dll' -File -ErrorAction SilentlyContinue |
     ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
-Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.exe' -File -ErrorAction SilentlyContinue |
+Get-ChildItem $craftBin -Filter '*.exe' -File -ErrorAction SilentlyContinue |
     ForEach-Object {
         $destination = Join-Path $plasmaRoot 'bin' $_.Name
         if (-not (Test-Path $destination)) { Copy-Item -Force $_.FullName $destination }
     }
+
+$dolphinSource = Find-CraftRuntimeExecutable -CraftRoot $craftRoot -Name 'dolphin.exe'
+if (-not $dolphinSource) {
+    Write-Host "Craft runtime root: $craftRoot"
+    Write-Host 'Craft install database entries for Dolphin:'
+    & craft -q --ci-mode --print-files kde/applications/dolphin | Out-Host
+    throw "Dolphin is registered as installed by Craft, but dolphin.exe was not found below $craftBin."
+}
+
+Copy-CraftRuntimeDirectory -Executable $dolphinSource -Destination (Join-Path $plasmaRoot 'bin')
+Copy-Item -Force $dolphinSource (Join-Path $plasmaRoot 'bin\dolphin.exe')
 
 if (-not (Test-Path (Join-Path $plasmaRoot 'bin\dolphin.exe'))) {
     throw 'Dolphin was not staged into the Plasma runtime.'
@@ -212,3 +253,4 @@ if (-not (Test-Path $konsoleExe)) {
 
 Write-Host "Plasma Windows runtime: $plasmaExe"
 Write-Host "Konsole Windows frontend: $konsoleExe"
+Write-Host "Dolphin Windows runtime: $(Join-Path $plasmaRoot 'bin\dolphin.exe')"
