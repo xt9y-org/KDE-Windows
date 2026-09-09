@@ -34,6 +34,7 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsPowerSystem.cpp
     ../Platform/Windows/WindowsPowerSystem.hpp
     ../Platform/Windows/WindowsNetworkSystem.cpp
+    ../Platform/Windows/WindowsNetworkProfiles.cpp
     ../Platform/Windows/WindowsNetworkSystem.hpp
     ../Platform/Windows/WindowsBluetoothSystem.cpp
     ../Platform/Windows/WindowsBluetoothSystem.hpp
