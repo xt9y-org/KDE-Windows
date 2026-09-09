@@ -20,24 +20,26 @@ Window {
 
     signal dismissed()
     property int page: 0
+    property var wifiState: ({ "enabled": false, "connected": false, "name": "", "networks": [] })
     property var bluetooth: ({ "available": false, "discoverable": false, "radioName": "", "devices": [] })
 
-    function refreshBluetooth() {
+    function refreshHardware() {
+        wifiState = PlasmaBackend.wifiState()
         bluetooth = PlasmaBackend.bluetoothState()
     }
 
     onVisibleChanged: {
         if (visible) {
-            refreshBluetooth()
+            refreshHardware()
             requestActivate()
         }
     }
 
     Timer {
-        interval: 2500
+        interval: 3000
         running: settings.visible
         repeat: true
-        onTriggered: settings.refreshBluetooth()
+        onTriggered: settings.refreshHardware()
     }
 
     FileDialog {
@@ -76,7 +78,7 @@ Window {
                 }
 
                 Repeater {
-                    model: ["Appearance", "Displays", "Bluetooth", "Sound", "Power", "Virtual Desktops"]
+                    model: ["Appearance", "Displays", "Network", "Bluetooth", "Sound", "Power", "Virtual Desktops"]
                     delegate: ItemDelegate {
                         required property string modelData
                         required property int index
@@ -107,7 +109,6 @@ Window {
                 anchors.margins: 28
                 currentIndex: settings.page
 
-                // Appearance
                 ColumnLayout {
                     spacing: 16
                     Label { text: "Appearance"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
@@ -141,7 +142,6 @@ Window {
                     Item { Layout.fillHeight: true }
                 }
 
-                // Displays
                 ColumnLayout {
                     spacing: 14
                     Label { text: "Displays"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
@@ -168,7 +168,6 @@ Window {
                                     radius: 10
                                     color: "#2b3035"
                                     border.color: modelData.primary ? "#3daee9" : "#434b52"
-
                                     property var brightnessInfo: PlasmaBackend.displayBrightness(modelData.id)
 
                                     ColumnLayout {
@@ -214,7 +213,89 @@ Window {
                     }
                 }
 
-                // Bluetooth
+                ColumnLayout {
+                    spacing: 14
+                    Label { text: "Network"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Label {
+                                text: settings.wifiState.connected ? settings.wifiState.name : "Wi-Fi"
+                                color: "#eff0f1"
+                                font.pixelSize: 17
+                                font.bold: true
+                            }
+                            Label {
+                                text: settings.wifiState.connected ? "Connected" : "Not connected"
+                                color: "#aeb5ba"
+                            }
+                        }
+                        Switch {
+                            text: "Wi-Fi"
+                            checked: settings.wifiState.enabled
+                            onToggled: {
+                                PlasmaBackend.setWifiEnabled(checked)
+                                settings.refreshHardware()
+                            }
+                        }
+                        Button {
+                            visible: settings.wifiState.connected
+                            text: "Disconnect"
+                            onClicked: {
+                                PlasmaBackend.disconnectWifi()
+                                settings.refreshHardware()
+                            }
+                        }
+                    }
+
+                    ScrollView {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        clip: true
+                        ListView {
+                            model: settings.wifiState.networks || []
+                            spacing: 6
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: ListView.view.width
+                                height: 66
+                                radius: 8
+                                color: "#2b3035"
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.margins: 12
+                                    ColumnLayout {
+                                        Layout.fillWidth: true
+                                        Label { text: modelData.name; color: "#eff0f1"; font.bold: true }
+                                        Label {
+                                            text: modelData.connected ? "Connected" : (modelData.known ? "Saved network" : modelData.secure ? "Secured" : "Open")
+                                            color: modelData.connected ? "#3daee9" : "#929ba2"
+                                            font.pixelSize: 11
+                                        }
+                                    }
+                                    Label { text: modelData.signal + "%"; color: "#c4c9cd" }
+                                    Button {
+                                        visible: !modelData.connected && modelData.known
+                                        text: "Connect"
+                                        onClicked: {
+                                            PlasmaBackend.connectWifi(modelData.id)
+                                            settings.refreshHardware()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Label {
+                        text: "New secured networks require a saved Windows WLAN profile before direct connection."
+                        color: "#808990"
+                        font.pixelSize: 11
+                        Layout.fillWidth: true
+                        wrapMode: Text.Wrap
+                    }
+                }
+
                 ColumnLayout {
                     spacing: 14
                     Label { text: "Bluetooth"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
@@ -240,7 +321,7 @@ Window {
                             checked: settings.bluetooth.discoverable
                             onToggled: {
                                 PlasmaBackend.setBluetoothDiscoverable(checked)
-                                settings.refreshBluetooth()
+                                settings.refreshHardware()
                             }
                         }
                     }
@@ -276,7 +357,6 @@ Window {
                     }
                 }
 
-                // Sound
                 ColumnLayout {
                     spacing: 18
                     Label { text: "Sound"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
@@ -306,7 +386,6 @@ Window {
                     Item { Layout.fillHeight: true }
                 }
 
-                // Power
                 ColumnLayout {
                     spacing: 18
                     Label { text: "Power"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
@@ -328,7 +407,6 @@ Window {
                     Item { Layout.fillHeight: true }
                 }
 
-                // Virtual Desktops
                 ColumnLayout {
                     spacing: 18
                     Label { text: "Virtual Desktops"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
