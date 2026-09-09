@@ -10,6 +10,7 @@ enum class ShortcutAction
     WindowNext,
     WindowPrevious,
     WindowCommit,
+    Overview,
 };
 
 inline constexpr int kRunnerHotkeyId = 1;
