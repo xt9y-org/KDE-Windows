@@ -30,7 +30,7 @@ if (-not $buildScript.Contains('-DNOMINMAX')) {
     throw 'The standalone Windows shell MinGW build must define NOMINMAX before windows.h is parsed.'
 }
 if ($buildScript.Contains('/Fe')) {
-    throw 'The standalone MSVC shell build must not use cl.exe /Fe; compile and link must be separate to avoid Windows PowerShell 5.1 argument corruption.'
+    throw 'The standalone MSVC shell build must not use cl.exe /Fe; compile and link must be separate.'
 }
 if (-not $buildScript.Contains("'/c'")) {
     throw 'The standalone MSVC shell build must compile sources with /c.'
@@ -38,6 +38,21 @@ if (-not $buildScript.Contains("'/c'")) {
 if (-not $buildScript.Contains('link.exe')) {
     throw 'The standalone MSVC shell build must invoke link.exe explicitly.'
 }
-if (-not $buildScript.Contains("'/OUT:' + `$output")) {
-    throw 'The standalone MSVC link step must set the executable path with link.exe /OUT:.'
+if (-not $buildScript.Contains('Set-Content -LiteralPath $compileResponse -Encoding ASCII')) {
+    throw 'Direct MSVC compilation must use a response file so Windows PowerShell 5.1 cannot split /Fo from its path.'
+}
+if (-not $buildScript.Contains("`$compileResponseArg = '@' + `$compileResponse")) {
+    throw 'Direct MSVC compilation must pass exactly one @response-file argument to cl.exe/clang-cl.exe.'
+}
+if (-not $buildScript.Contains('Set-Content -LiteralPath $linkResponse -Encoding ASCII')) {
+    throw 'Direct MSVC linking must use a response file so Windows PowerShell 5.1 cannot split /OUT: from its path.'
+}
+if (-not $buildScript.Contains("`$linkResponseArg = '@' + `$linkResponse")) {
+    throw 'Direct MSVC linking must pass exactly one @response-file argument to link.exe/lld-link.exe.'
+}
+if ($buildScript.Contains('& $Compiler @compileArgs')) {
+    throw 'Do not pass MSVC compile options as a PowerShell argument array on Windows PowerShell 5.1.'
+}
+if ($buildScript.Contains('& $linker @linkArgs')) {
+    throw 'Do not pass MSVC linker options as a PowerShell argument array on Windows PowerShell 5.1.'
 }
