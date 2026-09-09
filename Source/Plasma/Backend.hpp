@@ -5,6 +5,7 @@
 #include "Core/ClipboardModel.hpp"
 #include "Core/SystemState.hpp"
 #include "Core/WindowModel.hpp"
+#include "Core/WindowSwitcher.hpp"
 #include "Platform/Windows/WindowsApplications.hpp"
 #include "Platform/Windows/WindowsAudioSystem.hpp"
 #include "Platform/Windows/WindowsNetworkSystem.hpp"
@@ -43,6 +44,8 @@ class Backend final : public QObject
     Q_PROPERTY(bool wifi READ wifi NOTIFY systemStatusChanged)
     Q_PROPERTY(QString networkName READ networkName NOTIFY systemStatusChanged)
     Q_PROPERTY(int networkSignal READ networkSignal NOTIFY systemStatusChanged)
+    Q_PROPERTY(bool windowSwitcherVisible READ windowSwitcherVisible NOTIFY windowSwitcherChanged)
+    Q_PROPERTY(int windowSwitcherIndex READ windowSwitcherIndex NOTIFY windowSwitcherChanged)
 
 public:
     explicit Backend(QObject* parent = nullptr);
@@ -66,6 +69,8 @@ public:
     [[nodiscard]] bool wifi() const { return networkState_.wifi; }
     [[nodiscard]] QString networkName() const { return QString::fromStdWString(networkState_.name); }
     [[nodiscard]] int networkSignal() const { return networkState_.signalQuality; }
+    [[nodiscard]] bool windowSwitcherVisible() const { return windowSwitcherVisible_; }
+    [[nodiscard]] int windowSwitcherIndex() const;
 
     Q_INVOKABLE QVariantList searchApplications(const QString& query) const;
     Q_INVOKABLE bool runCommand(const QString& command);
@@ -100,12 +105,16 @@ signals:
     void clockChanged();
     void runnerRequested();
     void clipboardRequested();
+    void overviewRequested();
+    void windowSwitcherChanged();
 
 private:
     void refreshWindows();
     void refreshSystemStatus();
     void captureClipboard();
     void addNotification(const TrayNotification& notification);
+    void cycleWindowSwitcher(bool reverse);
+    void commitWindowSwitcher();
     static QVariantMap windowMap(const WindowSnapshot& window);
     static QVariantMap applicationMap(const ApplicationEntry& application);
     static QVariantMap trayIconMap(const TrayIconSnapshot& icon);
@@ -132,6 +141,8 @@ private:
     QTimer statusTimer_;
     QVariantList notifications_;
     qulonglong nextNotificationId_ = 1;
+    std::size_t windowSwitcherSelection_ = kNoWindowSelection;
+    bool windowSwitcherVisible_ = false;
     QWindow* desktop_ = nullptr;
     QWindow* panel_ = nullptr;
     RECT originalWorkArea_{};
