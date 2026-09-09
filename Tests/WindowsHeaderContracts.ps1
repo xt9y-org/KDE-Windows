@@ -56,3 +56,9 @@ if ($buildScript.Contains('& $Compiler @compileArgs')) {
 if ($buildScript.Contains('& $linker @linkArgs')) {
     throw 'Do not pass MSVC linker options as a PowerShell argument array on Windows PowerShell 5.1.'
 }
+if (-not $buildScript.Contains("'/I\"Source\"'")) {
+    throw 'MSVC response files must keep /I and its include directory in one token.'
+}
+if ($buildScript.Contains("'/I',`n            '\"Source\"'")) {
+    throw 'Do not split /I from its include-directory argument across response-file lines.'
+}
