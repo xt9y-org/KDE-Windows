@@ -6,6 +6,7 @@
 #define NOMINMAX
 #include <windows.h>
 
+#include <atomic>
 #include <functional>
 
 namespace kde_windows
@@ -23,6 +24,7 @@ public:
 
     bool start(Callback callback);
     void stop();
+    bool takeLauncherRequest() { return launcherRequest_.exchange(false); }
 
 private:
     static LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
@@ -34,6 +36,7 @@ private:
     bool switching_ = false;
     bool winTapCandidate_ = false;
     bool winInjectedForCombo_ = false;
+    std::atomic_bool launcherRequest_{false};
     Callback callback_;
 };
 }
