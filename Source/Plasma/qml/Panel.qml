@@ -110,6 +110,65 @@ Window {
                 }
             }
 
+            Flickable {
+                id: trayArea
+                Layout.preferredWidth: Math.min(220, trayRow.implicitWidth)
+                Layout.fillHeight: true
+                contentWidth: trayRow.implicitWidth
+                clip: true
+
+                Row {
+                    id: trayRow
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 2
+
+                    Repeater {
+                        model: PlasmaBackend.trayIcons
+
+                        delegate: ToolButton {
+                            required property var modelData
+                            width: 32
+                            height: 38
+                            hoverEnabled: true
+                            onClicked: PlasmaBackend.invokeTrayIcon(modelData.key, false)
+
+                            background: Rectangle {
+                                radius: 6
+                                color: parent.down ? "#4a555e" : parent.hovered ? "#384047" : "transparent"
+                            }
+
+                            contentItem: Item {
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 22
+                                    height: 22
+                                    source: modelData.icon
+                                    visible: source.toString().length > 0
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                }
+                                Label {
+                                    anchors.centerIn: parent
+                                    visible: modelData.icon.length === 0
+                                    text: "•"
+                                    color: "#d9dcde"
+                                    font.pixelSize: 18
+                                }
+                            }
+
+                            ToolTip.visible: hovered && modelData.tooltip.length > 0
+                            ToolTip.text: modelData.tooltip
+                            ToolTip.delay: 500
+
+                            TapHandler {
+                                acceptedButtons: Qt.RightButton
+                                onTapped: PlasmaBackend.invokeTrayIcon(modelData.key, true)
+                            }
+                        }
+                    }
+                }
+            }
+
             Rectangle {
                 Layout.preferredWidth: 1
                 Layout.preferredHeight: 26
