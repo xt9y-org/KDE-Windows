@@ -56,9 +56,18 @@ if ($buildScript.Contains('& $Compiler @compileArgs')) {
 if ($buildScript.Contains('& $linker @linkArgs')) {
     throw 'Do not pass MSVC linker options as a PowerShell argument array on Windows PowerShell 5.1.'
 }
-if (-not $buildScript.Contains("'/I\"Source\"'")) {
-    throw 'MSVC response files must keep /I and its include directory in one token.'
+if (-not $buildScript.Contains("'/ISource'")) {
+    throw 'MSVC response files must keep /I and its include directory in one plain token.'
 }
-if ($buildScript.Contains("'/I',`n            '\"Source\"'")) {
-    throw 'Do not split /I from its include-directory argument across response-file lines.'
+if (-not $buildScript.Contains("'/Fo' + `$object")) {
+    throw 'MSVC response files must keep /Fo and its object path in one plain token.'
+}
+if (-not $buildScript.Contains("'/OUT:' + `$output")) {
+    throw 'MSVC linker response files must keep /OUT: and the executable path in one plain token.'
+}
+if ($buildScript.Contains("'/Fo\"' + `$object")) {
+    throw 'Do not write C-style escaped quotes into an MSVC response file; PowerShell treats backslash as a literal character.'
+}
+if ($buildScript.Contains("'/OUT:\"' + `$output")) {
+    throw 'Do not write C-style escaped quotes into an MSVC linker response file.'
 }
