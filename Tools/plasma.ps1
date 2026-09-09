@@ -69,6 +69,65 @@ function Copy-DirectoryContents {
     Copy-Item -Recurse -Force (Join-Path $Source '*') $Destination
 }
 
+function Remove-CraftEnvironmentConflicts {
+    foreach ($name in @('MAKEFLAGS', 'MFLAGS', 'MAKE', 'NMAKEFLAGS')) {
+        Remove-Item "Env:$name" -ErrorAction SilentlyContinue
+    }
+
+    if (-not $env:PATH) { return }
+
+    $cleanPath = foreach ($pathEntry in ($env:PATH -split ';')) {
+        $trimmed = $pathEntry.Trim().Trim('"')
+        if (-not $trimmed) { continue }
+
+        $conflictingCompiler = $false
+        try {
+            $conflictingCompiler =
+                (Test-Path -LiteralPath (Join-Path $trimmed 'gcc.exe')) -or
+                (Test-Path -LiteralPath (Join-Path $trimmed 'g++.exe')) -or
+                (Test-Path -LiteralPath (Join-Path $trimmed 'cpp.exe'))
+        }
+        catch {
+            $conflictingCompiler = $false
+        }
+
+        if ($conflictingCompiler) {
+            Write-Host "Temporarily excluding conflicting compiler path from Craft: $trimmed"
+            continue
+        }
+
+        $pathEntry
+    }
+
+    $env:PATH = $cleanPath -join ';'
+}
+
+function Import-CraftEnvironment {
+    Remove-CraftEnvironmentConflicts
+
+    $savedErrorActionPreference = $ErrorActionPreference
+    try {
+        # craftenv.ps1 intentionally removes the inherited environment. Some empty
+        # variables reported by the Env provider can disappear before Remove-Item
+        # reaches them; Craft expects those to remain non-terminating errors.
+        $ErrorActionPreference = 'Continue'
+        . $craftEnv
+    }
+    finally {
+        $ErrorActionPreference = $savedErrorActionPreference
+    }
+
+    # craftenv.ps1 changes location to KDEROOT. The rest of this script uses repo-relative paths.
+    Set-Location $root
+
+    if (-not (Get-Command craft -ErrorAction SilentlyContinue)) {
+        throw 'KDE Craft environment activation did not define the craft command.'
+    }
+    if (-not $env:CraftRoot) {
+        throw 'KDE Craft environment activation did not set CraftRoot.'
+    }
+}
+
 if (-not (Test-Path $craftEnv)) {
     Ensure-MSVC
     $python = Find-Python
@@ -81,7 +140,7 @@ if (-not (Test-Path $craftEnv)) {
     if ($LASTEXITCODE -ne 0) { throw 'KDE Craft bootstrap failed.' }
 }
 
-. $craftEnv
+Import-CraftEnvironment
 
 Invoke-CraftPackage 'libs/qt/qtbase'
 Invoke-CraftPackage 'libs/qt/qtdeclarative'
