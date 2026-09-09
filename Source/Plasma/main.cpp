@@ -1,4 +1,5 @@
 #include "Backend.hpp"
+#include "FavoritesBridge.hpp"
 #include "PanelBridge.hpp"
 #include "ShellIconProvider.hpp"
 
@@ -41,11 +42,13 @@ int main(int argc, char** argv)
         QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
 
         kde_windows::Backend backend;
+        kde_windows::FavoritesBridge favorites;
         kde_windows::PanelBridge panelBridge;
         QQmlApplicationEngine engine;
         engine.addImportPath(qmlRoot);
         engine.addImageProvider(QStringLiteral("shell"), new ShellIconProvider);
         engine.rootContext()->setContextProperty(QStringLiteral("PlasmaBackend"), &backend);
+        engine.rootContext()->setContextProperty(QStringLiteral("Favorites"), &favorites);
         engine.rootContext()->setContextProperty(QStringLiteral("PanelBridge"), &panelBridge);
 
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] {
