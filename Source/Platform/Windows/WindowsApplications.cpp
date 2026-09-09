@@ -56,6 +56,17 @@ void append_bundled_applications(std::vector<ApplicationEntry>& applications)
         entry.iconPath = dolphin.wstring();
         applications.push_back(std::move(entry));
     }
+
+    const auto konsole = bin / L"konsole.exe";
+    if (std::filesystem::exists(konsole)) {
+        ApplicationEntry entry;
+        entry.id = L"org.kde.konsole";
+        entry.name = L"Konsole";
+        entry.executable = konsole.wstring();
+        entry.workingDirectory = bin.wstring();
+        entry.iconPath = konsole.wstring();
+        applications.push_back(std::move(entry));
+    }
 }
 
 std::wstring property_string(IPropertyStore* store, REFPROPERTYKEY key)
