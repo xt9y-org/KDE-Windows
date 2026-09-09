@@ -36,6 +36,22 @@ std::filesystem::path executableDirectory()
     return std::filesystem::path(path).parent_path();
 }
 
+bool openInDolphin(const std::wstring& path)
+{
+    const auto dolphin = executableDirectory() / L"dolphin.exe";
+    if (!std::filesystem::exists(dolphin))
+        return false;
+
+    const std::wstring arguments = L"\"" + path + L"\"";
+    const HINSTANCE result = ShellExecuteW(nullptr,
+                                           L"open",
+                                           dolphin.c_str(),
+                                           arguments.c_str(),
+                                           dolphin.parent_path().c_str(),
+                                           SW_SHOWNORMAL);
+    return reinterpret_cast<INT_PTR>(result) > 32;
+}
+
 void appendFolder(std::vector<DesktopEntry>& entries, const std::wstring& folder)
 {
     if (folder.empty())
@@ -80,23 +96,39 @@ bool WindowsDesktopSystem::launch(const DesktopEntry& entry) const
     if (entry.path.empty())
         return false;
 
-    if (entry.directory) {
-        const auto dolphin = executableDirectory() / L"dolphin.exe";
-        if (std::filesystem::exists(dolphin)) {
-            const std::wstring arguments = L"\"" + entry.path + L"\"";
-            const HINSTANCE result = ShellExecuteW(nullptr,
-                                                   L"open",
-                                                   dolphin.c_str(),
-                                                   arguments.c_str(),
-                                                   dolphin.parent_path().c_str(),
-                                                   SW_SHOWNORMAL);
-            if (reinterpret_cast<INT_PTR>(result) > 32)
-                return true;
-        }
-    }
+    if (entry.directory && openInDolphin(entry.path))
+        return true;
 
     const HINSTANCE result = ShellExecuteW(nullptr, L"open", entry.path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     return reinterpret_cast<INT_PTR>(result) > 32;
+}
+
+bool WindowsDesktopSystem::openDesktop() const
+{
+    const std::wstring desktop = knownFolder(FOLDERID_Desktop);
+    if (desktop.empty())
+        return false;
+    if (openInDolphin(desktop))
+        return true;
+    const HINSTANCE result = ShellExecuteW(nullptr, L"open", desktop.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    return reinterpret_cast<INT_PTR>(result) > 32;
+}
+
+bool WindowsDesktopSystem::createFolder() const
+{
+    const std::wstring desktop = knownFolder(FOLDERID_Desktop);
+    if (desktop.empty())
+        return false;
+
+    std::filesystem::path candidate = std::filesystem::path(desktop) / L"New Folder";
+    std::error_code error;
+    for (unsigned index = 2; std::filesystem::exists(candidate, error); ++index) {
+        if (error)
+            return false;
+        candidate = std::filesystem::path(desktop) / (L"New Folder (" + std::to_wstring(index) + L")");
+    }
+
+    return std::filesystem::create_directory(candidate, error) && !error;
 }
 
 std::wstring WindowsDesktopSystem::wallpaper() const
