@@ -6,6 +6,7 @@
 #include "Core/ClipboardModel.hpp"
 #include "Core/DesktopModel.hpp"
 #include "Core/DisplayModel.hpp"
+#include "Core/NetworkModel.hpp"
 #include "Core/SystemState.hpp"
 #include "Core/VirtualDesktopAction.hpp"
 #include "Core/WindowModel.hpp"
@@ -102,6 +103,10 @@ public:
     Q_INVOKABLE void reloadDisplays();
     Q_INVOKABLE QVariantMap displayBrightness(const QString& displayId) const;
     Q_INVOKABLE bool setDisplayBrightness(const QString& displayId, int percent);
+    Q_INVOKABLE QVariantMap wifiState() const;
+    Q_INVOKABLE bool setWifiEnabled(bool enabled);
+    Q_INVOKABLE bool connectWifi(const QString& networkId);
+    Q_INVOKABLE bool disconnectWifi();
     Q_INVOKABLE QVariantMap bluetoothState() const;
     Q_INVOKABLE bool setBluetoothDiscoverable(bool enabled);
     Q_INVOKABLE void launchDesktopItem(const QString& id);
