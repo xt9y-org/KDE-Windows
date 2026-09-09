@@ -19,6 +19,7 @@ Window {
     signal launcherRequested()
     signal clipboardRequested()
     signal notificationCenterRequested()
+    signal calendarRequested()
     signal settingsRequested(int page)
 
     Rectangle {
@@ -247,21 +248,32 @@ Window {
                 color: "#495057"
             }
 
-            ColumnLayout {
-                Layout.preferredWidth: 104
+            ToolButton {
+                id: clockButton
+                Layout.preferredWidth: 108
                 Layout.fillHeight: true
-                spacing: -2
-                Label {
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
-                    text: PlasmaBackend.clockText
-                    color: "#eff0f1"
-                    font.pixelSize: 13
+                hoverEnabled: true
+                onClicked: panel.calendarRequested()
+                ToolTip.visible: hovered
+                ToolTip.text: Qt.formatDate(new Date(), "dddd, d MMMM yyyy")
+                background: Rectangle {
+                    radius: 6
+                    color: clockButton.down ? "#4a555e" : clockButton.hovered ? "#343b41" : "transparent"
                 }
-                Label {
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                    text: PlasmaBackend.dateText
-                    color: "#b7bdc2"
-                    font.pixelSize: 10
+                contentItem: ColumnLayout {
+                    spacing: -2
+                    Label {
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                        text: PlasmaBackend.clockText
+                        color: "#eff0f1"
+                        font.pixelSize: 13
+                    }
+                    Label {
+                        Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                        text: PlasmaBackend.dateText
+                        color: "#b7bdc2"
+                        font.pixelSize: 10
+                    }
                 }
             }
         }
