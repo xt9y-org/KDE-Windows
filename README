@@ -1,0 +1,8 @@
+# KDE-Windows
+
+KDE Plasma shell for Windows.
+
+```sh
+make && sudo make install
+sudo make uninstall
+```
