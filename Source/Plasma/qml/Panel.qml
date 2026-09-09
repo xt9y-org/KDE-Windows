@@ -19,6 +19,7 @@ Window {
     signal launcherRequested()
     signal clipboardRequested()
     signal notificationCenterRequested()
+    signal settingsRequested(int page)
 
     Rectangle {
         anchors.fill: parent
@@ -36,6 +37,7 @@ Window {
                 id: launcherButton
                 Layout.preferredWidth: 42
                 Layout.preferredHeight: 38
+                icon.name: "start-here-kde"
                 text: "K"
                 font.pixelSize: 18
                 font.bold: true
@@ -197,8 +199,7 @@ Window {
                 id: clipboardButton
                 Layout.preferredWidth: 34
                 Layout.preferredHeight: 38
-                text: "⧉"
-                font.pixelSize: 17
+                icon.name: "edit-copy"
                 hoverEnabled: true
                 onClicked: panel.clipboardRequested()
                 ToolTip.visible: hovered
@@ -213,9 +214,7 @@ Window {
                 id: notificationsButton
                 Layout.preferredWidth: 34
                 Layout.preferredHeight: 38
-                text: "N"
-                font.pixelSize: 14
-                font.bold: PlasmaBackend.notificationHistory.length > 0
+                icon.name: "notifications"
                 hoverEnabled: true
                 onClicked: panel.notificationCenterRequested()
                 ToolTip.visible: hovered
@@ -238,7 +237,9 @@ Window {
                 }
             }
 
-            StatusArea {}
+            StatusArea {
+                onSettingsRequested: function(page) { panel.settingsRequested(page) }
+            }
 
             Rectangle {
                 Layout.preferredWidth: 1
