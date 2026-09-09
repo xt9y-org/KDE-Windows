@@ -120,6 +120,8 @@ public:
     Q_INVOKABLE bool pairBluetooth(const QString& deviceId);
     Q_INVOKABLE bool removeBluetooth(const QString& deviceId);
     Q_INVOKABLE void launchDesktopItem(const QString& id);
+    Q_INVOKABLE bool openDesktopFolder();
+    Q_INVOKABLE bool createDesktopFolder();
     Q_INVOKABLE void reloadDesktop();
     Q_INVOKABLE bool setWallpaper(const QString& path);
     Q_INVOKABLE void invokeTrayIcon(const QString& key, bool contextMenu = false);
