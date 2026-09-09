@@ -7,11 +7,11 @@ if (-not $script.Contains('function Find-CraftRuntimeExecutable')) {
     throw 'plasma.ps1 must resolve Craft runtime executables instead of assuming they live directly in CraftRoot\bin.'
 }
 
-if (-not $script.Contains("Get-ChildItem -LiteralPath $binRoot -Filter $Name -File -Recurse")) {
+if (-not $script.Contains('Get-ChildItem -LiteralPath $binRoot -Filter $Name -File -Recurse')) {
     throw 'Craft runtime executable lookup must search recursively below CraftRoot\bin.'
 }
 
-if (-not $script.Contains("--print-files")) {
+if (-not $script.Contains('--print-files')) {
     throw 'Dolphin staging failure must report Craft install-database files for diagnostics.'
 }
 
