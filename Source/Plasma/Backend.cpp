@@ -1,9 +1,11 @@
 #include "Backend.hpp"
 
 #include <QBuffer>
+#include <QClipboard>
 #include <QCoreApplication>
 #include <QDate>
 #include <QDateTime>
+#include <QGuiApplication>
 #include <QImage>
 #include <QMetaObject>
 #include <QTime>
@@ -60,6 +62,11 @@ Backend::Backend(QObject* parent)
     statusTimer_.setInterval(kSystemStatusIntervalMs);
     connect(&statusTimer_, &QTimer::timeout, this, &Backend::refreshSystemStatus);
     statusTimer_.start();
+
+    if (QClipboard* clipboard = QGuiApplication::clipboard()) {
+        connect(clipboard, &QClipboard::dataChanged, this, &Backend::captureClipboard);
+        captureClipboard();
+    }
 }
 
 Backend::~Backend()
@@ -94,6 +101,15 @@ QVariantList Backend::trayIcons() const
         if (!icon.hidden)
             result.push_back(trayIconMap(icon));
     }
+    return result;
+}
+
+QStringList Backend::clipboardEntries() const
+{
+    QStringList result;
+    result.reserve(static_cast<qsizetype>(clipboardModel_.entries().size()));
+    for (const auto& text : clipboardModel_.entries())
+        result.push_back(QString::fromStdWString(text));
     return result;
 }
 
@@ -165,6 +181,31 @@ void Backend::dismissNotification(qulonglong id)
             return;
         }
     }
+}
+
+void Backend::activateClipboardEntry(int index)
+{
+    const auto& entries = clipboardModel_.entries();
+    if (index < 0 || static_cast<std::size_t>(index) >= entries.size())
+        return;
+    if (QClipboard* clipboard = QGuiApplication::clipboard())
+        clipboard->setText(QString::fromStdWString(entries[static_cast<std::size_t>(index)]));
+}
+
+void Backend::removeClipboardEntry(int index)
+{
+    if (index < 0)
+        return;
+    if (clipboardModel_.remove(static_cast<std::size_t>(index)))
+        emit clipboardChanged();
+}
+
+void Backend::clearClipboardHistory()
+{
+    if (clipboardModel_.entries().empty())
+        return;
+    clipboardModel_.clear();
+    emit clipboardChanged();
 }
 
 void Backend::setVolume(int volume)
@@ -258,6 +299,16 @@ void Backend::refreshSystemStatus()
     networkState_ = network;
     if (changed)
         emit systemStatusChanged();
+}
+
+void Backend::captureClipboard()
+{
+    QClipboard* clipboard = QGuiApplication::clipboard();
+    if (!clipboard)
+        return;
+    const QString text = clipboard->text(QClipboard::Clipboard);
+    if (clipboardModel_.push(text.toStdWString()))
+        emit clipboardChanged();
 }
 
 void Backend::addNotification(const TrayNotification& notification)
