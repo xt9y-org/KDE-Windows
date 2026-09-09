@@ -58,10 +58,6 @@ class Backend final : public QObject
     Q_PROPERTY(bool wifi READ wifi NOTIFY systemStatusChanged)
     Q_PROPERTY(QString networkName READ networkName NOTIFY systemStatusChanged)
     Q_PROPERTY(int networkSignal READ networkSignal NOTIFY systemStatusChanged)
-    Q_PROPERTY(bool bluetoothAvailable READ bluetoothAvailable NOTIFY systemStatusChanged)
-    Q_PROPERTY(bool bluetoothDiscoverable READ bluetoothDiscoverable NOTIFY systemStatusChanged)
-    Q_PROPERTY(QString bluetoothRadioName READ bluetoothRadioName NOTIFY systemStatusChanged)
-    Q_PROPERTY(QVariantList bluetoothDevices READ bluetoothDevices NOTIFY systemStatusChanged)
     Q_PROPERTY(bool windowSwitcherVisible READ windowSwitcherVisible NOTIFY windowSwitcherChanged)
     Q_PROPERTY(int windowSwitcherIndex READ windowSwitcherIndex NOTIFY windowSwitcherChanged)
 
@@ -92,10 +88,6 @@ public:
     [[nodiscard]] bool wifi() const { return networkState_.wifi; }
     [[nodiscard]] QString networkName() const { return QString::fromStdWString(networkState_.name); }
     [[nodiscard]] int networkSignal() const { return networkState_.signalQuality; }
-    [[nodiscard]] bool bluetoothAvailable() const { return bluetoothState_.available; }
-    [[nodiscard]] bool bluetoothDiscoverable() const { return bluetoothState_.discoverable; }
-    [[nodiscard]] QString bluetoothRadioName() const { return QString::fromStdWString(bluetoothState_.radioName); }
-    [[nodiscard]] QVariantList bluetoothDevices() const;
     [[nodiscard]] bool windowSwitcherVisible() const { return windowSwitcherVisible_; }
     [[nodiscard]] int windowSwitcherIndex() const;
 
@@ -108,7 +100,10 @@ public:
     Q_INVOKABLE void launchApplication(const QString& id);
     Q_INVOKABLE void reloadApplications();
     Q_INVOKABLE void reloadDisplays();
+    Q_INVOKABLE QVariantMap displayBrightness(const QString& displayId) const;
     Q_INVOKABLE bool setDisplayBrightness(const QString& displayId, int percent);
+    Q_INVOKABLE QVariantMap bluetoothState() const;
+    Q_INVOKABLE bool setBluetoothDiscoverable(bool enabled);
     Q_INVOKABLE void launchDesktopItem(const QString& id);
     Q_INVOKABLE void reloadDesktop();
     Q_INVOKABLE bool setWallpaper(const QString& path);
@@ -121,7 +116,6 @@ public:
     Q_INVOKABLE void clearClipboardHistory();
     Q_INVOKABLE void setVolume(int volume);
     Q_INVOKABLE void toggleMute();
-    Q_INVOKABLE bool setBluetoothDiscoverable(bool enabled);
     Q_INVOKABLE void suspend();
     Q_INVOKABLE void virtualDesktopLeft();
     Q_INVOKABLE void virtualDesktopRight();
@@ -188,7 +182,6 @@ private:
     AudioState audioState_;
     PowerState powerState_;
     NetworkState networkState_;
-    BluetoothState bluetoothState_;
     QTimer clockTimer_;
     QTimer statusTimer_;
     QTimer desktopTimer_;
