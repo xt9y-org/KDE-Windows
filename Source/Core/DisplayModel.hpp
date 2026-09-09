@@ -20,6 +20,8 @@ struct DisplaySnapshot
     int workWidth = 0;
     int workHeight = 0;
     bool primary = false;
+    bool brightnessAvailable = false;
+    int brightnessPercent = -1;
 
     bool operator==(const DisplaySnapshot&) const = default;
 };
@@ -32,6 +34,13 @@ public:
         displays.erase(std::remove_if(displays.begin(), displays.end(), [](const DisplaySnapshot& display) {
             return display.width <= 0 || display.height <= 0;
         }), displays.end());
+
+        for (auto& display : displays) {
+            if (display.brightnessAvailable)
+                display.brightnessPercent = std::clamp(display.brightnessPercent, 0, 100);
+            else
+                display.brightnessPercent = -1;
+        }
 
         std::stable_sort(displays.begin(), displays.end(), [](const DisplaySnapshot& a, const DisplaySnapshot& b) {
             if (a.primary != b.primary)
@@ -51,6 +60,14 @@ public:
             return display.primary;
         });
         return it != displays_.end() ? &*it : (displays_.empty() ? nullptr : &displays_.front());
+    }
+
+    [[nodiscard]] const DisplaySnapshot* find(const std::wstring& id) const noexcept
+    {
+        const auto it = std::find_if(displays_.begin(), displays_.end(), [&](const DisplaySnapshot& display) {
+            return display.id == id;
+        });
+        return it == displays_.end() ? nullptr : &*it;
     }
 
 private:
