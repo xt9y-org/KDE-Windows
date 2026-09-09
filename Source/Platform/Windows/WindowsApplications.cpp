@@ -72,26 +72,26 @@ ApplicationEntry read_shortcut(const std::filesystem::path& file)
     std::wstring path(32768, L'\0');
     WIN32_FIND_DATAW findData{};
     if (SUCCEEDED(link->GetPath(path.data(), static_cast<int>(path.size()), &findData, SLGP_RAWPATH))) {
-        path.resize(wcsnlen(path.c_str(), path.size()));
+        path.resize(std::char_traits<wchar_t>::length(path.c_str()));
         entry.executable = path;
     }
 
     std::wstring arguments(32768, L'\0');
     if (SUCCEEDED(link->GetArguments(arguments.data(), static_cast<int>(arguments.size())))) {
-        arguments.resize(wcsnlen(arguments.c_str(), arguments.size()));
+        arguments.resize(std::char_traits<wchar_t>::length(arguments.c_str()));
         entry.arguments = arguments;
     }
 
     std::wstring working(32768, L'\0');
     if (SUCCEEDED(link->GetWorkingDirectory(working.data(), static_cast<int>(working.size())))) {
-        working.resize(wcsnlen(working.c_str(), working.size()));
+        working.resize(std::char_traits<wchar_t>::length(working.c_str()));
         entry.workingDirectory = working;
     }
 
     int iconIndex = 0;
     std::wstring icon(32768, L'\0');
     if (SUCCEEDED(link->GetIconLocation(icon.data(), static_cast<int>(icon.size()), &iconIndex))) {
-        icon.resize(wcsnlen(icon.c_str(), icon.size()));
+        icon.resize(std::char_traits<wchar_t>::length(icon.c_str()));
         entry.iconPath = icon;
     }
 
@@ -209,7 +209,7 @@ bool WindowsApplications::launch(const ApplicationEntry& application) const
 {
     if (application.packaged) {
         IApplicationActivationManager* manager = nullptr;
-        if (FAILED(CoCreateInstance(CLSID_ApplicationActivationManager, nullptr, CLSCTX_INPROC_SERVER, IID_PPV_ARGS(&manager))))
+        if (FAILED(CoCreateInstance(CLSID_ApplicationActivationManager, nullptr, CLSCTX_LOCAL_SERVER, IID_PPV_ARGS(&manager))))
             return false;
 
         DWORD processId = 0;
