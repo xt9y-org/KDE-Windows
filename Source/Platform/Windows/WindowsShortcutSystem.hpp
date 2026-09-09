@@ -32,6 +32,8 @@ private:
     HHOOK keyboardHook_ = nullptr;
     ATOM classAtom_ = 0;
     bool switching_ = false;
+    bool winTapCandidate_ = false;
+    bool winInjectedForCombo_ = false;
     Callback callback_;
 };
 }
