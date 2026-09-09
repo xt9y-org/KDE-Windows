@@ -52,8 +52,7 @@ function Invoke-MSVC {
             '/DUNICODE',
             '/D_UNICODE',
             '/DNOMINMAX',
-            '/I',
-            '"Source"',
+            '/I"Source"',
             '/c',
             '"' + $source + '"',
             '/Fo"' + $object + '"'
