@@ -1,11 +1,15 @@
 #include "Core/PanelLayout.hpp"
 
 #include <cassert>
+#include <unordered_map>
 
 using kde_windows::panelLayout;
 
 int main()
 {
+    std::unordered_map<int, int> standardNamespaceProbe;
+    assert(standardNamespaceProbe.empty());
+
     const auto three = panelLayout(1280, 44, 3);
     assert(three.launcher.x == 6 && three.launcher.width == 44);
     assert(three.clock.x == 1186 && three.clock.width == 84);
