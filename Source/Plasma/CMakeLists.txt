@@ -58,6 +58,7 @@ qt_add_qml_module(plasmashell
         qml/Launcher.qml
         qml/Notifications.qml
         qml/NotificationCenter.qml
+        qml/Calendar.qml
         qml/StatusArea.qml
         qml/Runner.qml
         qml/Clipboard.qml
