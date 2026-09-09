@@ -7,18 +7,12 @@ enum class PlasmaRunResult
     Unavailable,
     LaunchFailed,
     ExitedDuringWarmup,
-    ExitedAfterWarmup,
+    CrashedAfterWarmup,
+    ExitedCleanlyAfterWarmup,
 };
 
 constexpr bool shouldStartRecoveryShell(PlasmaRunResult result)
 {
-    switch (result) {
-    case PlasmaRunResult::Unavailable:
-    case PlasmaRunResult::LaunchFailed:
-    case PlasmaRunResult::ExitedDuringWarmup:
-    case PlasmaRunResult::ExitedAfterWarmup:
-        return true;
-    }
-    return true;
+    return result != PlasmaRunResult::ExitedCleanlyAfterWarmup;
 }
 }
