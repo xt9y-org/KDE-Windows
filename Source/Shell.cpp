@@ -1,6 +1,7 @@
 #include "ShellConfig.hpp"
 #include "Core/ApplicationModel.hpp"
 #include "Core/PanelLayout.hpp"
+#include "Core/ShellPolicy.hpp"
 #include "Core/WindowModel.hpp"
 #include "Platform/Windows/WindowsApplications.hpp"
 #include "Platform/Windows/WindowsWindowSystem.hpp"
@@ -534,11 +535,11 @@ bool create_fallback_shell(HINSTANCE instance)
     return true;
 }
 
-bool run_real_plasma_if_available()
+kde_windows::PlasmaRunResult run_real_plasma_if_available()
 {
     const std::wstring plasma = kde_windows::plasma_executable(g_root);
     if (!std::filesystem::exists(plasma))
-        return false;
+        return kde_windows::PlasmaRunResult::Unavailable;
 
     SetEnvironmentVariableW(L"XDG_CURRENT_DESKTOP", L"KDE");
     SetEnvironmentVariableW(L"KDE_FULL_SESSION", L"true");
@@ -553,18 +554,24 @@ bool run_real_plasma_if_available()
 
     if (!CreateProcessW(nullptr, command.data(), nullptr, nullptr, FALSE, 0, nullptr,
                         std::filesystem::path(plasma).parent_path().c_str(), &startup, &process))
-        return false;
+        return kde_windows::PlasmaRunResult::LaunchFailed;
 
     CloseHandle(process.hThread);
     const DWORD warmup = WaitForSingleObject(process.hProcess, 1500);
-    if (warmup == WAIT_TIMEOUT) {
-        WaitForSingleObject(process.hProcess, INFINITE);
+    if (warmup != WAIT_TIMEOUT) {
         CloseHandle(process.hProcess);
-        return true;
+        return kde_windows::PlasmaRunResult::ExitedDuringWarmup;
     }
 
+    WaitForSingleObject(process.hProcess, INFINITE);
+    DWORD exitCode = 1;
+    if (!GetExitCodeProcess(process.hProcess, &exitCode))
+        exitCode = 1;
     CloseHandle(process.hProcess);
-    return false;
+
+    return exitCode == 0
+        ? kde_windows::PlasmaRunResult::ExitedCleanlyAfterWarmup
+        : kde_windows::PlasmaRunResult::CrashedAfterWarmup;
 }
 
 void launch_explorer_recovery()
@@ -579,7 +586,8 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE, PWSTR, int)
     CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
     g_root = executable_directory();
 
-    if (run_real_plasma_if_available()) {
+    const auto plasmaResult = run_real_plasma_if_available();
+    if (!kde_windows::shouldStartRecoveryShell(plasmaResult)) {
         CoUninitialize();
         return 0;
     }
