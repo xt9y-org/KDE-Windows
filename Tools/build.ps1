@@ -4,13 +4,16 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 New-Item -ItemType Directory -Force -Path build | Out-Null
 
+& (Join-Path $PSScriptRoot 'plasma.ps1')
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
 $sources = @(
     'Source\Shell.cpp',
     'Source\Platform\Windows\WindowsWindowSystem.cpp',
     'Source\Platform\Windows\WindowsApplications.cpp'
 )
 $output = 'build\KDEWindowsShell.exe'
-$msvcLibraries = @('user32.lib', 'gdi32.lib', 'shell32.lib', 'dwmapi.lib', 'ole32.lib', 'propsys.lib')
+$msvcLibraries = @('user32.lib', 'gdi32.lib', 'shell32.lib', 'dwmapi.lib', 'ole32.lib', 'propsys.lib', 'uuid.lib')
 
 function Invoke-MSVC {
     param([string]$Compiler)
