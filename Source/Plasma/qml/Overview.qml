@@ -69,12 +69,14 @@ Window {
                         Layout.fillHeight: true
                         radius: 8
                         color: "#252a2e"
-                        Label {
+
+                        Image {
                             anchors.centerIn: parent
-                            text: modelData.title.length > 0 ? modelData.title.charAt(0).toUpperCase() : "?"
-                            color: "#dfe3e6"
-                            font.pixelSize: 42
-                            font.bold: true
+                            width: 64
+                            height: 64
+                            source: "image://shell/window/" + modelData.id
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
                         }
                     }
 
