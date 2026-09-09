@@ -5,6 +5,7 @@ namespace kde_windows
 enum class ShortcutAction
 {
     None,
+    Launcher,
     Runner,
     Clipboard,
     WindowNext,
