@@ -15,6 +15,7 @@ Window {
     color: "transparent"
 
     signal launcherRequested()
+    signal clipboardRequested()
 
     Rectangle {
         anchors.fill: parent
@@ -166,6 +167,22 @@ Window {
                             }
                         }
                     }
+                }
+            }
+
+            ToolButton {
+                id: clipboardButton
+                Layout.preferredWidth: 34
+                Layout.preferredHeight: 38
+                text: "⧉"
+                font.pixelSize: 17
+                hoverEnabled: true
+                onClicked: panel.clipboardRequested()
+                ToolTip.visible: hovered
+                ToolTip.text: "Clipboard"
+                background: Rectangle {
+                    radius: 6
+                    color: clipboardButton.down ? "#4a555e" : clipboardButton.hovered ? "#384047" : "transparent"
                 }
             }
 
