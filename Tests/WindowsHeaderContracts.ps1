@@ -32,42 +32,24 @@ if (-not $buildScript.Contains('-DNOMINMAX')) {
 if ($buildScript.Contains('/Fe')) {
     throw 'The standalone MSVC shell build must not use cl.exe /Fe; compile and link must be separate.'
 }
-if (-not $buildScript.Contains("'/c'")) {
+if (-not $buildScript.Contains('/c')) {
     throw 'The standalone MSVC shell build must compile sources with /c.'
 }
 if (-not $buildScript.Contains('link.exe')) {
     throw 'The standalone MSVC shell build must invoke link.exe explicitly.'
 }
-if (-not $buildScript.Contains('Set-Content -LiteralPath $compileResponse -Encoding ASCII')) {
-    throw 'Direct MSVC compilation must use a response file so Windows PowerShell 5.1 cannot split /Fo from its path.'
+if ($buildScript.Contains('.compile.rsp') -or $buildScript.Contains('link.rsp')) {
+    throw 'Do not route MSVC shell options through generated response files; use cmd.exe native parsing.'
 }
-if (-not $buildScript.Contains("`$compileResponseArg = '@' + `$compileResponse")) {
-    throw 'Direct MSVC compilation must pass exactly one @response-file argument to cl.exe/clang-cl.exe.'
+if ($buildScript.Contains('& $Compiler') -or $buildScript.Contains('& $linker')) {
+    throw 'Do not invoke cl.exe/link.exe directly through Windows PowerShell 5.1 argument reconstruction.'
 }
-if (-not $buildScript.Contains('Set-Content -LiteralPath $linkResponse -Encoding ASCII')) {
-    throw 'Direct MSVC linking must use a response file so Windows PowerShell 5.1 cannot split /OUT: from its path.'
+if (-not $buildScript.Contains('& cmd.exe /d /s /c $compileCommand')) {
+    throw 'MSVC source compilation must be executed through cmd.exe as one native command line.'
 }
-if (-not $buildScript.Contains("`$linkResponseArg = '@' + `$linkResponse")) {
-    throw 'Direct MSVC linking must pass exactly one @response-file argument to link.exe/lld-link.exe.'
+if (-not $buildScript.Contains('& cmd.exe /d /s /c $linkCommand')) {
+    throw 'MSVC linking must be executed through cmd.exe as one native command line.'
 }
-if ($buildScript.Contains('& $Compiler @compileArgs')) {
-    throw 'Do not pass MSVC compile options as a PowerShell argument array on Windows PowerShell 5.1.'
-}
-if ($buildScript.Contains('& $linker @linkArgs')) {
-    throw 'Do not pass MSVC linker options as a PowerShell argument array on Windows PowerShell 5.1.'
-}
-if (-not $buildScript.Contains("'/ISource'")) {
-    throw 'MSVC response files must keep /I and its include directory in one plain token.'
-}
-if (-not $buildScript.Contains("'/Fo' + `$object")) {
-    throw 'MSVC response files must keep /Fo and its object path in one plain token.'
-}
-if (-not $buildScript.Contains("'/OUT:' + `$output")) {
-    throw 'MSVC linker response files must keep /OUT: and the executable path in one plain token.'
-}
-if ($buildScript.Contains("'/Fo\"' + `$object")) {
-    throw 'Do not write C-style escaped quotes into an MSVC response file; PowerShell treats backslash as a literal character.'
-}
-if ($buildScript.Contains("'/OUT:\"' + `$output")) {
-    throw 'Do not write C-style escaped quotes into an MSVC linker response file.'
+if (-not $buildScript.Contains("Write-Host 'MSVC shell build: cmd.exe compile/link'")) {
+    throw 'The shell build must print its MSVC execution path so stale local scripts are immediately visible.'
 }
