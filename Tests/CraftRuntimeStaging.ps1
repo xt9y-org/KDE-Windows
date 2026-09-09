@@ -26,3 +26,11 @@ if (-not $script.Contains('--print-files')) {
 if (-not $script.Contains('Copy-CraftRuntimeDirectory')) {
     throw 'Dolphin staging must copy sibling runtime binaries when its executable lives in a nested Craft bin directory.'
 }
+
+if (-not $script.Contains("`$plasmaBin = Join-Path `$plasmaRoot 'bin'")) {
+    throw 'plasma.ps1 must precompute the Plasma bin directory for Windows PowerShell 5.1 compatibility.'
+}
+
+if ($script.Contains("Join-Path `$plasmaRoot 'bin' `$_.Name")) {
+    throw 'plasma.ps1 must not pass a third positional path component to Join-Path on Windows PowerShell 5.1.'
+}
