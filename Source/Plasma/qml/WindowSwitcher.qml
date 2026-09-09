@@ -43,19 +43,13 @@ Window {
                         anchors.margins: 9
                         spacing: 6
 
-                        Rectangle {
+                        Image {
                             Layout.alignment: Qt.AlignHCenter
                             Layout.preferredWidth: 46
                             Layout.preferredHeight: 46
-                            radius: 8
-                            color: "#394148"
-                            Label {
-                                anchors.centerIn: parent
-                                text: modelData.title.length > 0 ? modelData.title.charAt(0).toUpperCase() : "?"
-                                color: "#eff0f1"
-                                font.pixelSize: 22
-                                font.bold: true
-                            }
+                            source: "image://shell/window/" + modelData.id
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
                         }
 
                         Label {
