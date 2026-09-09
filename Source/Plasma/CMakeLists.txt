@@ -14,6 +14,8 @@ qt_add_executable(plasmashell
     main.cpp
     Backend.cpp
     Backend.hpp
+    ShellIconProvider.cpp
+    ShellIconProvider.hpp
     ../Platform/Windows/WindowsWindowSystem.cpp
     ../Platform/Windows/WindowsWindowSystem.hpp
     ../Platform/Windows/WindowsApplications.cpp
