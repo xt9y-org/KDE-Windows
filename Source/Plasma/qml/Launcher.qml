@@ -90,6 +90,10 @@ Window {
                         width: appList.width
                         height: 46
                         text: modelData.name
+                        icon.source: "image://shell/path/" + encodeURIComponent(modelData.iconPath.length > 0 ? modelData.iconPath : modelData.executable)
+                        icon.width: 24
+                        icon.height: 24
+                        display: AbstractButton.TextBesideIcon
                         palette.buttonText: "#eff0f1"
                         onClicked: {
                             PlasmaBackend.launchApplication(modelData.id)
