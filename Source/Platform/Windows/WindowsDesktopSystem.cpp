@@ -6,8 +6,10 @@
 #include <shlobj.h>
 #include <shellapi.h>
 
+#include <cwchar>
 #include <filesystem>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace kde_windows
