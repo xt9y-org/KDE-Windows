@@ -22,6 +22,20 @@ QVariantList Backend::displayModes(const QString& displayId) const
     return result;
 }
 
+QVariantMap Backend::currentDisplayMode(const QString& displayId) const
+{
+    QVariantMap result;
+    const DisplaySnapshot* display = displayModel_.find(displayId.toStdWString());
+    if (!display)
+        return result;
+
+    result.insert(QStringLiteral("width"), display->width);
+    result.insert(QStringLiteral("height"), display->height);
+    result.insert(QStringLiteral("refreshRate"), display->refreshRate);
+    result.insert(QStringLiteral("label"), QStringLiteral("%1×%2 @ %3 Hz").arg(display->width).arg(display->height).arg(display->refreshRate));
+    return result;
+}
+
 QVariantMap Backend::displayBrightness(const QString& displayId) const
 {
     QVariantMap result;
@@ -104,6 +118,14 @@ bool Backend::connectWifi(const QString& networkId)
     return requested;
 }
 
+bool Backend::connectWifiPassword(const QString& networkId, const QString& password)
+{
+    const bool requested = networkSystem_.connectWithPassword(networkId.toStdWString(), password.toStdWString());
+    if (requested)
+        refreshSystemStatus();
+    return requested;
+}
+
 bool Backend::disconnectWifi()
 {
     const bool disconnected = networkSystem_.disconnect();
@@ -142,6 +164,22 @@ bool Backend::setBluetoothDiscoverable(bool enabled)
     if (changed)
         emit systemStatusChanged();
     return changed;
+}
+
+bool Backend::pairBluetooth(const QString& deviceId)
+{
+    const bool paired = bluetoothSystem_.pair(deviceId.toStdWString());
+    if (paired)
+        emit systemStatusChanged();
+    return paired;
+}
+
+bool Backend::removeBluetooth(const QString& deviceId)
+{
+    const bool removed = bluetoothSystem_.remove(deviceId.toStdWString());
+    if (removed)
+        emit systemStatusChanged();
+    return removed;
 }
 
 void Backend::virtualDesktopLeft()
