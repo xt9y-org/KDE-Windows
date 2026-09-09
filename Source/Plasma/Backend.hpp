@@ -2,20 +2,24 @@
 
 #include "Core/ApplicationModel.hpp"
 #include "Core/AudioState.hpp"
+#include "Core/BluetoothState.hpp"
 #include "Core/ClipboardModel.hpp"
 #include "Core/DesktopModel.hpp"
 #include "Core/DisplayModel.hpp"
 #include "Core/SystemState.hpp"
+#include "Core/VirtualDesktopAction.hpp"
 #include "Core/WindowModel.hpp"
 #include "Core/WindowSwitcher.hpp"
 #include "Platform/Windows/WindowsApplications.hpp"
 #include "Platform/Windows/WindowsAudioSystem.hpp"
+#include "Platform/Windows/WindowsBluetoothSystem.hpp"
 #include "Platform/Windows/WindowsDesktopSystem.hpp"
 #include "Platform/Windows/WindowsDisplaySystem.hpp"
 #include "Platform/Windows/WindowsNetworkSystem.hpp"
 #include "Platform/Windows/WindowsPowerSystem.hpp"
 #include "Platform/Windows/WindowsShortcutSystem.hpp"
 #include "Platform/Windows/WindowsTraySystem.hpp"
+#include "Platform/Windows/WindowsVirtualDesktopSystem.hpp"
 #include "Platform/Windows/WindowsWindowSystem.hpp"
 
 #include <QObject>
@@ -54,6 +58,10 @@ class Backend final : public QObject
     Q_PROPERTY(bool wifi READ wifi NOTIFY systemStatusChanged)
     Q_PROPERTY(QString networkName READ networkName NOTIFY systemStatusChanged)
     Q_PROPERTY(int networkSignal READ networkSignal NOTIFY systemStatusChanged)
+    Q_PROPERTY(bool bluetoothAvailable READ bluetoothAvailable NOTIFY systemStatusChanged)
+    Q_PROPERTY(bool bluetoothDiscoverable READ bluetoothDiscoverable NOTIFY systemStatusChanged)
+    Q_PROPERTY(QString bluetoothRadioName READ bluetoothRadioName NOTIFY systemStatusChanged)
+    Q_PROPERTY(QVariantList bluetoothDevices READ bluetoothDevices NOTIFY systemStatusChanged)
     Q_PROPERTY(bool windowSwitcherVisible READ windowSwitcherVisible NOTIFY windowSwitcherChanged)
     Q_PROPERTY(int windowSwitcherIndex READ windowSwitcherIndex NOTIFY windowSwitcherChanged)
 
@@ -84,6 +92,10 @@ public:
     [[nodiscard]] bool wifi() const { return networkState_.wifi; }
     [[nodiscard]] QString networkName() const { return QString::fromStdWString(networkState_.name); }
     [[nodiscard]] int networkSignal() const { return networkState_.signalQuality; }
+    [[nodiscard]] bool bluetoothAvailable() const { return bluetoothState_.available; }
+    [[nodiscard]] bool bluetoothDiscoverable() const { return bluetoothState_.discoverable; }
+    [[nodiscard]] QString bluetoothRadioName() const { return QString::fromStdWString(bluetoothState_.radioName); }
+    [[nodiscard]] QVariantList bluetoothDevices() const;
     [[nodiscard]] bool windowSwitcherVisible() const { return windowSwitcherVisible_; }
     [[nodiscard]] int windowSwitcherIndex() const;
 
@@ -96,6 +108,7 @@ public:
     Q_INVOKABLE void launchApplication(const QString& id);
     Q_INVOKABLE void reloadApplications();
     Q_INVOKABLE void reloadDisplays();
+    Q_INVOKABLE bool setDisplayBrightness(const QString& displayId, int percent);
     Q_INVOKABLE void launchDesktopItem(const QString& id);
     Q_INVOKABLE void reloadDesktop();
     Q_INVOKABLE bool setWallpaper(const QString& path);
@@ -108,7 +121,12 @@ public:
     Q_INVOKABLE void clearClipboardHistory();
     Q_INVOKABLE void setVolume(int volume);
     Q_INVOKABLE void toggleMute();
+    Q_INVOKABLE bool setBluetoothDiscoverable(bool enabled);
     Q_INVOKABLE void suspend();
+    Q_INVOKABLE void virtualDesktopLeft();
+    Q_INVOKABLE void virtualDesktopRight();
+    Q_INVOKABLE void virtualDesktopCreate();
+    Q_INVOKABLE void virtualDesktopClose();
     Q_INVOKABLE void registerDesktop(QObject* object);
     Q_INVOKABLE void registerPanel(QObject* object);
     Q_INVOKABLE void lockSession();
@@ -164,10 +182,13 @@ private:
     WindowsAudioSystem audioSystem_;
     WindowsPowerSystem powerSystem_;
     WindowsNetworkSystem networkSystem_;
+    WindowsBluetoothSystem bluetoothSystem_;
+    WindowsVirtualDesktopSystem virtualDesktopSystem_;
     WindowsShortcutSystem shortcutSystem_;
     AudioState audioState_;
     PowerState powerState_;
     NetworkState networkState_;
+    BluetoothState bluetoothState_;
     QTimer clockTimer_;
     QTimer statusTimer_;
     QTimer desktopTimer_;
