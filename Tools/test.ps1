@@ -4,7 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 Set-Location $root
 New-Item -ItemType Directory -Force -Path build\tests | Out-Null
 
-$tests = @('ShellConfig', 'ShellPolicy', 'WindowModel', 'ApplicationModel', 'PanelLayout', 'TrayModel', 'AudioState', 'SystemState', 'ClipboardModel')
+$tests = @('ShellConfig', 'ShellPolicy', 'WindowModel', 'ApplicationModel', 'PanelLayout', 'TrayModel', 'AudioState', 'SystemState', 'ClipboardModel', 'ShortcutAction')
 
 $cl = Get-Command cl.exe -ErrorAction SilentlyContinue
 $clangCl = Get-Command clang-cl.exe -ErrorAction SilentlyContinue
