@@ -31,6 +31,7 @@ constexpr DWORD kRoundCorners = 2;
 constexpr DWORD kTransientBackdrop = 3;
 constexpr int kTrayIconSize = 32;
 constexpr int kMaxNotifications = 6;
+constexpr int kMaxNotificationHistory = 50;
 constexpr int kNotificationTimeoutMs = 8000;
 constexpr int kSystemStatusIntervalMs = 2000;
 constexpr int kDesktopRefreshIntervalMs = 3000;
@@ -311,6 +312,38 @@ void Backend::dismissNotification(qulonglong id)
     }
 }
 
+void Backend::removeNotificationHistory(qulonglong id)
+{
+    bool historyChanged = false;
+    for (qsizetype index = 0; index < notificationHistory_.size(); ++index) {
+        const QVariantMap notification = notificationHistory_.at(index).toMap();
+        if (notification.value(QStringLiteral("id")).toULongLong() == id) {
+            notificationHistory_.removeAt(index);
+            historyChanged = true;
+            break;
+        }
+    }
+    if (historyChanged)
+        emit notificationHistoryChanged();
+
+    for (qsizetype index = 0; index < notifications_.size(); ++index) {
+        const QVariantMap notification = notifications_.at(index).toMap();
+        if (notification.value(QStringLiteral("id")).toULongLong() == id) {
+            notifications_.removeAt(index);
+            emit notificationsChanged();
+            break;
+        }
+    }
+}
+
+void Backend::clearNotificationHistory()
+{
+    if (notificationHistory_.isEmpty())
+        return;
+    notificationHistory_.clear();
+    emit notificationHistoryChanged();
+}
+
 void Backend::activateClipboardEntry(int index)
 {
     const auto& entries = clipboardModel_.entries();
@@ -461,6 +494,11 @@ void Backend::addNotification(const TrayNotification& notification)
     while (notifications_.size() > kMaxNotifications)
         notifications_.removeLast();
     emit notificationsChanged();
+
+    notificationHistory_.prepend(map);
+    while (notificationHistory_.size() > kMaxNotificationHistory)
+        notificationHistory_.removeLast();
+    emit notificationHistoryChanged();
 
     QTimer::singleShot(kNotificationTimeoutMs, this, [this, id] { dismissNotification(id); });
 }
