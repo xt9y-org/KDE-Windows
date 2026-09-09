@@ -4,6 +4,7 @@ $root = Split-Path -Parent $PSScriptRoot
 $trayHeader = Get-Content (Join-Path $root 'Source\Platform\Windows\WindowsTraySystem.hpp') -Raw
 $shortcutHeader = Get-Content (Join-Path $root 'Source\Platform\Windows\WindowsShortcutSystem.hpp') -Raw
 $iconSource = Get-Content (Join-Path $root 'Source\Plasma\ShellIconProvider.cpp') -Raw
+$buildScript = Get-Content (Join-Path $root 'Tools\build.ps1') -Raw
 
 if (-not $trayHeader.Contains('#include <shellapi.h>')) {
     throw 'WindowsTraySystem.hpp must include shellapi.h because it exposes NOTIFYICONDATAW in its interface.'
@@ -20,4 +21,11 @@ foreach ($source in @(
     if (-not $source.Content.Contains('#ifndef NOMINMAX')) {
         throw "$($source.Name) must guard NOMINMAX before defining it."
     }
+}
+
+if (-not $buildScript.Contains('/DNOMINMAX')) {
+    throw 'The standalone Windows shell MSVC/clang-cl build must define NOMINMAX before windows.h is parsed.'
+}
+if (-not $buildScript.Contains('-DNOMINMAX')) {
+    throw 'The standalone Windows shell MinGW build must define NOMINMAX before windows.h is parsed.'
 }
