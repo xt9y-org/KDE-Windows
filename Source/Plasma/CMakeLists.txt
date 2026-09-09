@@ -18,6 +18,8 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsWindowSystem.hpp
     ../Platform/Windows/WindowsApplications.cpp
     ../Platform/Windows/WindowsApplications.hpp
+    ../Platform/Windows/WindowsTraySystem.cpp
+    ../Platform/Windows/WindowsTraySystem.hpp
 )
 
 target_include_directories(plasmashell PRIVATE ..)
@@ -30,6 +32,7 @@ qt_add_qml_module(plasmashell
         qml/Desktop.qml
         qml/Panel.qml
         qml/Launcher.qml
+        qml/Notifications.qml
 )
 
 target_compile_definitions(plasmashell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
@@ -41,6 +44,7 @@ target_link_libraries(plasmashell PRIVATE
     Qt6::Quick
     Qt6::QuickControls2
     user32
+    gdi32
     shell32
     dwmapi
     ole32
