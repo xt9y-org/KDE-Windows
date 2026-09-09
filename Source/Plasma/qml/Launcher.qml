@@ -20,6 +20,7 @@ Window {
 
     onVisibleChanged: {
         if (visible) {
+            Favorites.reload()
             search.forceActiveFocus()
             search.selectAll()
         }
@@ -96,6 +97,7 @@ Window {
                     model: PlasmaBackend.searchApplications(search.text)
                     spacing: 3
                     delegate: ItemDelegate {
+                        id: appDelegate
                         required property var modelData
                         width: appList.width
                         height: 46
@@ -111,7 +113,20 @@ Window {
                         }
                         background: Rectangle {
                             radius: 7
-                            color: parent.hovered ? "#374047" : "transparent"
+                            color: appDelegate.hovered ? "#374047" : "transparent"
+                        }
+
+                        TapHandler {
+                            acceptedButtons: Qt.RightButton
+                            onTapped: favoriteMenu.popup()
+                        }
+
+                        Menu {
+                            id: favoriteMenu
+                            MenuItem {
+                                text: Favorites.isFavorite(modelData.id) ? "Unpin from Task Manager" : "Pin to Task Manager"
+                                onTriggered: Favorites.setFavorite(modelData.id, !Favorites.isFavorite(modelData.id))
+                            }
                         }
                     }
                 }
