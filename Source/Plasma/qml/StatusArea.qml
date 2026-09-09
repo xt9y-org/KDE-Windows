@@ -5,24 +5,51 @@ import QtQuick.Layouts
 RowLayout {
     id: root
     spacing: 2
+    signal settingsRequested(int page)
+
+    property var bluetooth: ({ "available": false, "devices": [] })
+
+    Timer {
+        interval: 3000
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: root.bluetooth = PlasmaBackend.bluetoothState()
+    }
 
     ToolButton {
         id: networkButton
         Layout.preferredWidth: 34
         Layout.preferredHeight: 38
         hoverEnabled: true
-        text: PlasmaBackend.networkConnected ? (PlasmaBackend.wifi ? "◉" : "◆") : "×"
-        font.pixelSize: 14
-        palette.buttonText: PlasmaBackend.networkConnected ? "#eff0f1" : "#da4453"
+        icon.name: PlasmaBackend.networkConnected ? (PlasmaBackend.wifi ? "network-wireless" : "network-wired") : "network-disconnect"
+        onClicked: root.settingsRequested(2)
         background: Rectangle {
             radius: 6
-            color: networkButton.hovered ? "#384047" : "transparent"
+            color: networkButton.down ? "#4a555e" : networkButton.hovered ? "#384047" : "transparent"
         }
         ToolTip.visible: hovered
         ToolTip.delay: 400
         ToolTip.text: PlasmaBackend.networkConnected
             ? PlasmaBackend.networkName + (PlasmaBackend.wifi ? "  " + PlasmaBackend.networkSignal + "%" : "")
             : "Disconnected"
+    }
+
+    ToolButton {
+        id: bluetoothButton
+        visible: root.bluetooth.available
+        Layout.preferredWidth: 34
+        Layout.preferredHeight: 38
+        hoverEnabled: true
+        icon.name: "preferences-system-bluetooth"
+        onClicked: root.settingsRequested(3)
+        background: Rectangle {
+            radius: 6
+            color: bluetoothButton.down ? "#4a555e" : bluetoothButton.hovered ? "#384047" : "transparent"
+        }
+        ToolTip.visible: hovered
+        ToolTip.delay: 400
+        ToolTip.text: root.bluetooth.radioName || "Bluetooth"
     }
 
     ToolButton {
@@ -35,9 +62,10 @@ RowLayout {
         font.pixelSize: 11
         palette.buttonText: PlasmaBackend.batteryPercent >= 0 && PlasmaBackend.batteryPercent <= 15 && !PlasmaBackend.charging
             ? "#da4453" : "#eff0f1"
+        onClicked: root.settingsRequested(5)
         background: Rectangle {
             radius: 6
-            color: batteryButton.hovered ? "#384047" : "transparent"
+            color: batteryButton.down ? "#4a555e" : batteryButton.hovered ? "#384047" : "transparent"
         }
         ToolTip.visible: hovered
         ToolTip.delay: 400
@@ -57,6 +85,11 @@ RowLayout {
         background: Rectangle {
             radius: 6
             color: volumeButton.down ? "#4a555e" : volumeButton.hovered ? "#384047" : "transparent"
+        }
+
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onTapped: root.settingsRequested(4)
         }
 
         Popup {
@@ -102,5 +135,20 @@ RowLayout {
                 }
             }
         }
+    }
+
+    ToolButton {
+        id: settingsButton
+        Layout.preferredWidth: 34
+        Layout.preferredHeight: 38
+        hoverEnabled: true
+        icon.name: "configure"
+        onClicked: root.settingsRequested(0)
+        background: Rectangle {
+            radius: 6
+            color: settingsButton.down ? "#4a555e" : settingsButton.hovered ? "#384047" : "transparent"
+        }
+        ToolTip.visible: hovered
+        ToolTip.text: "System Settings"
     }
 }
