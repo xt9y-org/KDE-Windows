@@ -50,10 +50,33 @@ Backend::Backend(QObject* parent)
     shortcutSystem_.start([this](ShortcutAction action) {
         QMetaObject::invokeMethod(this,
                                   [this, action] {
-                                      if (action == ShortcutAction::Runner)
+                                      switch (action) {
+                                      case ShortcutAction::Runner:
                                           emit runnerRequested();
-                                      else if (action == ShortcutAction::Clipboard)
+                                          break;
+                                      case ShortcutAction::Clipboard:
                                           emit clipboardRequested();
+                                          break;
+                                      case ShortcutAction::WindowNext:
+                                          cycleWindowSwitcher(false);
+                                          break;
+                                      case ShortcutAction::WindowPrevious:
+                                          cycleWindowSwitcher(true);
+                                          break;
+                                      case ShortcutAction::WindowCommit:
+                                          commitWindowSwitcher();
+                                          break;
+                                      case ShortcutAction::Overview:
+                                          if (windowSwitcherVisible_) {
+                                              windowSwitcherVisible_ = false;
+                                              windowSwitcherSelection_ = kNoWindowSelection;
+                                              emit windowSwitcherChanged();
+                                          }
+                                          emit overviewRequested();
+                                          break;
+                                      case ShortcutAction::None:
+                                          break;
+                                      }
                                   },
                                   Qt::QueuedConnection);
     });
@@ -133,6 +156,13 @@ QString Backend::clockText() const
 QString Backend::dateText() const
 {
     return QDate::currentDate().toString(QStringLiteral("ddd, d MMM"));
+}
+
+int Backend::windowSwitcherIndex() const
+{
+    return windowSwitcherSelection_ == kNoWindowSelection
+        ? -1
+        : static_cast<int>(windowSwitcherSelection_);
 }
 
 QVariantList Backend::searchApplications(const QString& query) const
@@ -313,6 +343,13 @@ void Backend::shutDown()
 void Backend::refreshWindows()
 {
     windowModel_.replace(windowSystem_.snapshot(), GetCurrentProcessId());
+
+    if (windowSwitcherVisible_ && windowSwitcherSelection_ >= windowModel_.windows().size()) {
+        windowSwitcherVisible_ = false;
+        windowSwitcherSelection_ = kNoWindowSelection;
+        emit windowSwitcherChanged();
+    }
+
     emit windowsChanged();
 }
 
@@ -370,6 +407,50 @@ void Backend::addNotification(const TrayNotification& notification)
     emit notificationsChanged();
 
     QTimer::singleShot(kNotificationTimeoutMs, this, [this, id] { dismissNotification(id); });
+}
+
+void Backend::cycleWindowSwitcher(bool reverse)
+{
+    const auto& windows = windowModel_.windows();
+    if (windows.empty()) {
+        windowSwitcherVisible_ = false;
+        windowSwitcherSelection_ = kNoWindowSelection;
+        emit windowSwitcherChanged();
+        return;
+    }
+
+    std::size_t current = windowSwitcherSelection_;
+    if (!windowSwitcherVisible_) {
+        current = kNoWindowSelection;
+        for (std::size_t i = 0; i < windows.size(); ++i) {
+            if (windows[i].active) {
+                current = i;
+                break;
+            }
+        }
+    }
+
+    windowSwitcherSelection_ = cycleWindowSelection(windows.size(), current, reverse);
+    windowSwitcherVisible_ = windowSwitcherSelection_ != kNoWindowSelection;
+    emit windowSwitcherChanged();
+}
+
+void Backend::commitWindowSwitcher()
+{
+    if (!windowSwitcherVisible_)
+        return;
+
+    WindowId selected = 0;
+    const auto& windows = windowModel_.windows();
+    if (windowSwitcherSelection_ < windows.size())
+        selected = windows[windowSwitcherSelection_].id;
+
+    windowSwitcherVisible_ = false;
+    windowSwitcherSelection_ = kNoWindowSelection;
+    emit windowSwitcherChanged();
+
+    if (selected)
+        windowSystem_.activate(selected);
 }
 
 QVariantMap Backend::windowMap(const WindowSnapshot& window)
