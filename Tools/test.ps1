@@ -28,3 +28,5 @@ foreach ($test in $tests) {
     & ".\$output"
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
+
+& (Join-Path $root 'Tests\CraftEnvironment.ps1')
