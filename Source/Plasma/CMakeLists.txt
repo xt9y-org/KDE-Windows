@@ -17,6 +17,8 @@ qt_add_executable(plasmashell
     BackendBluetooth.cpp
     BackendDesktop.cpp
     Backend.hpp
+    FavoritesBridge.cpp
+    FavoritesBridge.hpp
     PanelBridge.cpp
     PanelBridge.hpp
     ShellIconProvider.cpp
