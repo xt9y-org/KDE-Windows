@@ -13,6 +13,7 @@ Item {
     property bool clipboardVisible: false
     property bool overviewVisible: false
     property bool notificationCenterVisible: false
+    property bool calendarVisible: false
     property bool settingsVisible: false
     property int settingsPage: 0
 
@@ -21,13 +22,12 @@ Item {
         runnerVisible = false
         clipboardVisible = false
         notificationCenterVisible = false
+        calendarVisible = false
     }
 
     function toggleLauncher() {
         const next = !launcherVisible
-        runnerVisible = false
-        clipboardVisible = false
-        notificationCenterVisible = false
+        hidePopups()
         overviewVisible = false
         settingsVisible = false
         launcherVisible = next
@@ -41,21 +41,27 @@ Item {
     }
 
     function showClipboard() {
-        launcherVisible = false
-        runnerVisible = false
+        const next = !clipboardVisible
+        hidePopups()
         overviewVisible = false
-        notificationCenterVisible = false
         settingsVisible = false
-        clipboardVisible = !clipboardVisible
+        clipboardVisible = next
     }
 
     function showNotificationCenter() {
-        launcherVisible = false
-        runnerVisible = false
-        clipboardVisible = false
+        const next = !notificationCenterVisible
+        hidePopups()
         overviewVisible = false
         settingsVisible = false
-        notificationCenterVisible = !notificationCenterVisible
+        notificationCenterVisible = next
+    }
+
+    function showCalendar() {
+        const next = !calendarVisible
+        hidePopups()
+        overviewVisible = false
+        settingsVisible = false
+        calendarVisible = next
     }
 
     function showOverview() {
@@ -91,6 +97,7 @@ Item {
         onLauncherRequested: root.toggleLauncher()
         onClipboardRequested: root.showClipboard()
         onNotificationCenterRequested: root.showNotificationCenter()
+        onCalendarRequested: root.showCalendar()
         onSettingsRequested: function(page) { root.showSettings(page) }
         Component.onCompleted: PanelBridge.registerPanel(panel)
     }
@@ -120,6 +127,15 @@ Item {
         id: notificationCenter
         visible: root.notificationCenterVisible
         onDismissed: root.notificationCenterVisible = false
+    }
+
+    Calendar {
+        id: calendar
+        visible: root.calendarVisible
+        panelX: panel.x
+        panelY: panel.y
+        panelWidth: panel.width
+        onDismissed: root.calendarVisible = false
     }
 
     Settings {
