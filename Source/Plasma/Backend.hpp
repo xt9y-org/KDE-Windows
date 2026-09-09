@@ -34,6 +34,7 @@ class Backend final : public QObject
     Q_PROPERTY(QString wallpaperUrl READ wallpaperUrl NOTIFY desktopChanged)
     Q_PROPERTY(QVariantList trayIcons READ trayIcons NOTIFY trayIconsChanged)
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY notificationsChanged)
+    Q_PROPERTY(QVariantList notificationHistory READ notificationHistory NOTIFY notificationHistoryChanged)
     Q_PROPERTY(QStringList clipboardEntries READ clipboardEntries NOTIFY clipboardChanged)
     Q_PROPERTY(QString clockText READ clockText NOTIFY clockChanged)
     Q_PROPERTY(QString dateText READ dateText NOTIFY clockChanged)
@@ -61,6 +62,7 @@ public:
     [[nodiscard]] QString wallpaperUrl() const;
     [[nodiscard]] QVariantList trayIcons() const;
     [[nodiscard]] QVariantList notifications() const { return notifications_; }
+    [[nodiscard]] QVariantList notificationHistory() const { return notificationHistory_; }
     [[nodiscard]] QStringList clipboardEntries() const;
     [[nodiscard]] QString clockText() const;
     [[nodiscard]] QString dateText() const;
@@ -91,6 +93,8 @@ public:
     Q_INVOKABLE bool setWallpaper(const QString& path);
     Q_INVOKABLE void invokeTrayIcon(const QString& key, bool contextMenu = false);
     Q_INVOKABLE void dismissNotification(qulonglong id);
+    Q_INVOKABLE void removeNotificationHistory(qulonglong id);
+    Q_INVOKABLE void clearNotificationHistory();
     Q_INVOKABLE void activateClipboardEntry(int index);
     Q_INVOKABLE void removeClipboardEntry(int index);
     Q_INVOKABLE void clearClipboardHistory();
@@ -110,6 +114,7 @@ signals:
     void desktopChanged();
     void trayIconsChanged();
     void notificationsChanged();
+    void notificationHistoryChanged();
     void clipboardChanged();
     void systemStatusChanged();
     void clockChanged();
@@ -155,6 +160,7 @@ private:
     QTimer statusTimer_;
     QTimer desktopTimer_;
     QVariantList notifications_;
+    QVariantList notificationHistory_;
     std::wstring wallpaperPath_;
     qulonglong nextNotificationId_ = 1;
     std::size_t windowSwitcherSelection_ = kNoWindowSelection;
