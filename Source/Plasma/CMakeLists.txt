@@ -37,6 +37,7 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsNetworkProfiles.cpp
     ../Platform/Windows/WindowsNetworkSystem.hpp
     ../Platform/Windows/WindowsBluetoothSystem.cpp
+    ../Platform/Windows/WindowsBluetoothActions.cpp
     ../Platform/Windows/WindowsBluetoothSystem.hpp
     ../Platform/Windows/WindowsVirtualDesktopSystem.cpp
     ../Platform/Windows/WindowsVirtualDesktopSystem.hpp
