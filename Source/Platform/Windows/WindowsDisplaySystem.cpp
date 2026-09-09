@@ -106,6 +106,12 @@ BOOL CALLBACK collectMonitor(HMONITOR monitor, HDC, LPRECT, LPARAM data)
     display.workHeight = info.rcWork.bottom - info.rcWork.top;
     display.primary = (info.dwFlags & MONITORINFOF_PRIMARY) != 0;
     display.brightnessAvailable = readBrightness(monitor, display.brightnessPercent);
+
+    DEVMODEW currentMode{};
+    currentMode.dmSize = sizeof(currentMode);
+    if (EnumDisplaySettingsExW(info.szDevice, ENUM_CURRENT_SETTINGS, &currentMode, 0))
+        display.refreshRate = static_cast<int>(currentMode.dmDisplayFrequency);
+
     displays->push_back(std::move(display));
     return TRUE;
 }
