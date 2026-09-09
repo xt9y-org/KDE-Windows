@@ -16,6 +16,7 @@ Window {
     property int panelX: 0
     property int panelY: 0
     signal dismissed()
+    signal settingsRequested()
 
     onVisibleChanged: {
         if (visible) {
@@ -44,6 +45,15 @@ Window {
                     font.pixelSize: 22
                     font.bold: true
                     Layout.fillWidth: true
+                }
+                ToolButton {
+                    icon.name: "configure"
+                    onClicked: {
+                        launcher.dismissed()
+                        launcher.settingsRequested()
+                    }
+                    ToolTip.visible: hovered
+                    ToolTip.text: "System Settings"
                 }
                 ToolButton {
                     text: "×"
