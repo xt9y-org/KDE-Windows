@@ -30,6 +30,34 @@ std::wstring environment(const wchar_t* name)
     return value;
 }
 
+std::filesystem::path executable_directory()
+{
+    std::wstring path(32768, L'\0');
+    const DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (!length)
+        return {};
+    path.resize(length);
+    return std::filesystem::path(path).parent_path();
+}
+
+void append_bundled_applications(std::vector<ApplicationEntry>& applications)
+{
+    const auto bin = executable_directory();
+    if (bin.empty())
+        return;
+
+    const auto dolphin = bin / L"dolphin.exe";
+    if (std::filesystem::exists(dolphin)) {
+        ApplicationEntry entry;
+        entry.id = L"org.kde.dolphin";
+        entry.name = L"Dolphin";
+        entry.executable = dolphin.wstring();
+        entry.workingDirectory = bin.wstring();
+        entry.iconPath = dolphin.wstring();
+        applications.push_back(std::move(entry));
+    }
+}
+
 std::wstring property_string(IPropertyStore* store, REFPROPERTYKEY key)
 {
     if (!store)
@@ -202,6 +230,7 @@ std::vector<ApplicationEntry> WindowsApplications::scan() const
         scan_shortcuts(std::filesystem::path(programData) / L"Microsoft/Windows/Start Menu/Programs", applications);
 
     scan_apps_folder(applications);
+    append_bundled_applications(applications);
     return applications;
 }
 
