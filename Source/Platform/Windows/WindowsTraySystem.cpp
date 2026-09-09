@@ -3,6 +3,8 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring>
+#include <iterator>
+#include <utility>
 
 #include <objbase.h>
 #include <shellapi.h>
