@@ -116,8 +116,16 @@ LRESULT CALLBACK WindowsShortcutSystem::keyboardProc(int code, WPARAM wparam, LP
 
     const bool keyDown = wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN;
     const bool keyUp = wparam == WM_KEYUP || wparam == WM_SYSKEYUP;
+    const bool altDown = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
+    const bool winDown = (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 ||
+                         (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
 
-    if (keyDown && key->vkCode == VK_TAB && (GetAsyncKeyState(VK_MENU) & 0x8000)) {
+    if (keyDown && key->vkCode == VK_TAB && winDown) {
+        self->callback_(ShortcutAction::Overview);
+        return 1;
+    }
+
+    if (keyDown && key->vkCode == VK_TAB && altDown) {
         const bool reverse = (GetAsyncKeyState(VK_SHIFT) & 0x8000) != 0;
         self->switching_ = true;
         self->callback_(reverse ? ShortcutAction::WindowPrevious : ShortcutAction::WindowNext);
