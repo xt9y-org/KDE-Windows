@@ -62,6 +62,13 @@ function Invoke-CraftPackage {
     }
 }
 
+function Copy-DirectoryContents {
+    param([string]$Source, [string]$Destination)
+    if (-not (Test-Path $Source)) { return }
+    New-Item -ItemType Directory -Force -Path $Destination | Out-Null
+    Copy-Item -Recurse -Force (Join-Path $Source '*') $Destination
+}
+
 if (-not (Test-Path $craftEnv)) {
     Ensure-MSVC
     $python = Find-Python
@@ -79,6 +86,9 @@ if (-not (Test-Path $craftEnv)) {
 Invoke-CraftPackage 'libs/qt/qtbase'
 Invoke-CraftPackage 'libs/qt/qtdeclarative'
 Invoke-CraftPackage 'libs/qt/qtsvg'
+Invoke-CraftPackage 'kde/frameworks/tier1/breeze-icons'
+Invoke-CraftPackage 'kde/frameworks/tier3/qqc2-desktop-style'
+Invoke-CraftPackage 'kde/plasma/breeze'
 
 $cmake = Get-Command cmake.exe -ErrorAction SilentlyContinue
 if (-not $cmake) { $cmake = Get-Command cmake -ErrorAction SilentlyContinue }
@@ -111,5 +121,13 @@ if (-not $deploy) { throw 'windeployqt was not provided by the Craft Qt runtime.
 
 & $deploy.Source --release --qmldir (Join-Path $root 'Source\Plasma\qml') $plasmaExe
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+$craftRoot = if ($env:CraftRoot) { $env:CraftRoot } else { Join-Path $craftPrefix 'craft' }
+Copy-DirectoryContents (Join-Path $craftRoot 'qml') (Join-Path $plasmaRoot 'qml')
+Copy-DirectoryContents (Join-Path $craftRoot 'plugins') (Join-Path $plasmaRoot 'plugins')
+Copy-DirectoryContents (Join-Path $craftRoot 'bin\data') (Join-Path $plasmaRoot 'bin\data')
+
+Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.dll' -File -ErrorAction SilentlyContinue |
+    ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
 
 Write-Host "Plasma Windows runtime: $plasmaExe"
