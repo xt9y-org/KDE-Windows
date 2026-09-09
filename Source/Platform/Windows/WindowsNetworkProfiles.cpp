@@ -112,7 +112,7 @@ bool personalProfileParameters(const WLAN_AVAILABLE_NETWORK& network,
     case static_cast<int>(DOT11_AUTH_ALGO_RSNA_PSK):
         authentication = L"WPA2PSK";
         break;
-    case 9: // DOT11_AUTH_ALGO_WPA3_SAE on current Windows SDKs.
+    case 9:
         authentication = L"WPA3SAE";
         break;
     default:
@@ -136,7 +136,7 @@ std::wstring buildProfile(const WLAN_AVAILABLE_NETWORK& network,
     const std::wstring escapedName = xmlEscape(name);
 
     std::wstring xml =
-        LR"(<?xml version="1.0"?><WLANProfile xmlns="http://www.microsoft.com/networking/WLAN/profile/v1"><name>)" +
+        L"<?xml version=\"1.0\"?><WLANProfile xmlns=\"http://www.microsoft.com/networking/WLAN/profile/v1\"><name>" +
         escapedName +
         L"</name><SSIDConfig><SSID><hex>" + ssidHex(network.dot11Ssid) + L"</hex><name>" + escapedName +
         L"</name></SSID></SSIDConfig><connectionType>ESS</connectionType><connectionMode>auto</connectionMode>"
