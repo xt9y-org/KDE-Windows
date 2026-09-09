@@ -1,6 +1,9 @@
 #include "Backend.hpp"
 
+#include <QCoreApplication>
+#include <QDir>
 #include <QGuiApplication>
+#include <QIcon>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QQuickStyle>
@@ -21,10 +24,23 @@ int main(int argc, char** argv)
         QGuiApplication app(argc, argv);
         app.setApplicationName(QStringLiteral("plasmashell"));
         app.setOrganizationName(QStringLiteral("KDE"));
-        QQuickStyle::setStyle(QStringLiteral("Basic"));
+
+        const QDir binDir(QCoreApplication::applicationDirPath());
+        const QString runtimeRoot = QDir::cleanPath(binDir.absoluteFilePath(QStringLiteral("..")));
+        const QString qmlRoot = QDir(runtimeRoot).absoluteFilePath(QStringLiteral("qml"));
+        const QString dataRoot = binDir.absoluteFilePath(QStringLiteral("data"));
+
+        qputenv("QML2_IMPORT_PATH", qmlRoot.toUtf8());
+        qputenv("QML_IMPORT_PATH", qmlRoot.toUtf8());
+        QIcon::setThemeSearchPaths({QDir(dataRoot).absoluteFilePath(QStringLiteral("icons"))});
+        QIcon::setThemeName(QStringLiteral("breeze"));
+
+        QQuickStyle::setFallbackStyle(QStringLiteral("Fusion"));
+        QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
 
         kde_windows::Backend backend;
         QQmlApplicationEngine engine;
+        engine.addImportPath(qmlRoot);
         engine.rootContext()->setContextProperty(QStringLiteral("PlasmaBackend"), &backend);
 
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] {
