@@ -9,6 +9,7 @@
 #include <QImage>
 #include <QMetaObject>
 #include <QTime>
+#include <QUrl>
 #include <QWindow>
 
 #define WIN32_LEAN_AND_MEAN
@@ -32,6 +33,7 @@ constexpr int kTrayIconSize = 32;
 constexpr int kMaxNotifications = 6;
 constexpr int kNotificationTimeoutMs = 8000;
 constexpr int kSystemStatusIntervalMs = 2000;
+constexpr int kDesktopRefreshIntervalMs = 3000;
 }
 
 Backend::Backend(QObject* parent)
@@ -82,6 +84,7 @@ Backend::Backend(QObject* parent)
     });
 
     reloadApplications();
+    reloadDesktop();
     refreshWindows();
     refreshSystemStatus();
 
@@ -96,6 +99,10 @@ Backend::Backend(QObject* parent)
     statusTimer_.setInterval(kSystemStatusIntervalMs);
     connect(&statusTimer_, &QTimer::timeout, this, &Backend::refreshSystemStatus);
     statusTimer_.start();
+
+    desktopTimer_.setInterval(kDesktopRefreshIntervalMs);
+    connect(&desktopTimer_, &QTimer::timeout, this, &Backend::reloadDesktop);
+    desktopTimer_.start();
 
     if (QClipboard* clipboard = QGuiApplication::clipboard()) {
         connect(clipboard, &QClipboard::dataChanged, this, &Backend::captureClipboard);
@@ -127,6 +134,22 @@ QVariantList Backend::applications() const
     for (const auto& application : applicationModel_.applications())
         result.push_back(applicationMap(application));
     return result;
+}
+
+QVariantList Backend::desktopItems() const
+{
+    QVariantList result;
+    result.reserve(static_cast<qsizetype>(desktopModel_.entries().size()));
+    for (const auto& entry : desktopModel_.entries())
+        result.push_back(desktopMap(entry));
+    return result;
+}
+
+QString Backend::wallpaperUrl() const
+{
+    if (wallpaperPath_.empty())
+        return {};
+    return QUrl::fromLocalFile(QString::fromStdWString(wallpaperPath_)).toString();
 }
 
 QVariantList Backend::trayIcons() const
@@ -236,6 +259,39 @@ void Backend::reloadApplications()
 {
     applicationModel_.replace(applications_.scan());
     emit applicationsChanged();
+}
+
+void Backend::launchDesktopItem(const QString& id)
+{
+    const auto* entry = desktopModel_.find(id.toStdWString());
+    if (entry)
+        desktopSystem_.launch(*entry);
+}
+
+void Backend::reloadDesktop()
+{
+    DesktopModel nextModel;
+    nextModel.replace(desktopSystem_.scan());
+    const std::wstring nextWallpaper = desktopSystem_.wallpaper();
+
+    if (nextModel.entries() == desktopModel_.entries() && nextWallpaper == wallpaperPath_)
+        return;
+
+    desktopModel_ = std::move(nextModel);
+    wallpaperPath_ = nextWallpaper;
+    emit desktopChanged();
+}
+
+bool Backend::setWallpaper(const QString& path)
+{
+    QString localPath = path;
+    const QUrl url(path);
+    if (url.isLocalFile())
+        localPath = url.toLocalFile();
+    if (!desktopSystem_.setWallpaper(localPath.toStdWString()))
+        return false;
+    reloadDesktop();
+    return true;
 }
 
 void Backend::invokeTrayIcon(const QString& key, bool contextMenu)
@@ -477,6 +533,17 @@ QVariantMap Backend::applicationMap(const ApplicationEntry& application)
     return map;
 }
 
+QVariantMap Backend::desktopMap(const DesktopEntry& entry)
+{
+    QVariantMap map;
+    map.insert(QStringLiteral("id"), QString::fromStdWString(entry.id));
+    map.insert(QStringLiteral("name"), QString::fromStdWString(entry.name));
+    map.insert(QStringLiteral("path"), QString::fromStdWString(entry.path));
+    map.insert(QStringLiteral("directory"), entry.directory);
+    map.insert(QStringLiteral("icon"), shellIconImage(entry.path));
+    return map;
+}
+
 QVariantMap Backend::trayIconMap(const TrayIconSnapshot& icon)
 {
     QVariantMap map;
@@ -539,6 +606,16 @@ QString Backend::trayIconImage(std::uintptr_t iconHandle)
         return {};
 
     return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
+}
+
+QString Backend::shellIconImage(const std::wstring& path)
+{
+    SHFILEINFOW info{};
+    if (!SHGetFileInfoW(path.c_str(), 0, &info, sizeof(info), SHGFI_ICON | SHGFI_LARGEICON) || !info.hIcon)
+        return {};
+    const QString image = trayIconImage(reinterpret_cast<std::uintptr_t>(info.hIcon));
+    DestroyIcon(info.hIcon);
+    return image;
 }
 
 bool Backend::enableShutdownPrivilege()
