@@ -5,6 +5,7 @@
 #include "Core/BluetoothState.hpp"
 #include "Core/ClipboardModel.hpp"
 #include "Core/DesktopModel.hpp"
+#include "Core/DisplayMode.hpp"
 #include "Core/DisplayModel.hpp"
 #include "Core/NetworkModel.hpp"
 #include "Core/SystemState.hpp"
@@ -101,7 +102,10 @@ public:
     Q_INVOKABLE void launchApplication(const QString& id);
     Q_INVOKABLE void reloadApplications();
     Q_INVOKABLE void reloadDisplays();
+    Q_INVOKABLE QVariantList displayModes(const QString& displayId) const;
     Q_INVOKABLE QVariantMap displayBrightness(const QString& displayId) const;
+    Q_INVOKABLE bool setDisplayMode(const QString& displayId, int width, int height, int refreshRate);
+    Q_INVOKABLE bool setPrimaryDisplay(const QString& displayId);
     Q_INVOKABLE bool setDisplayBrightness(const QString& displayId, int percent);
     Q_INVOKABLE QVariantMap wifiState() const;
     Q_INVOKABLE bool setWifiEnabled(bool enabled);
