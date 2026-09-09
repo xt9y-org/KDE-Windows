@@ -1,7 +1,10 @@
 #include "Backend.hpp"
 
+#include <QBuffer>
 #include <QCoreApplication>
 #include <QDate>
+#include <QDateTime>
+#include <QImage>
 #include <QMetaObject>
 #include <QTime>
 #include <QWindow>
@@ -12,20 +15,35 @@
 #include <dwmapi.h>
 #include <shellapi.h>
 
+#include <algorithm>
+#include <cstring>
+
 namespace kde_windows
 {
 namespace
 {
-constexpr UINT kAppBarMessage = WM_APP + 0x70;
 constexpr int kDwmWindowCornerPreference = 33;
 constexpr int kDwmSystemBackdropType = 38;
 constexpr DWORD kRoundCorners = 2;
 constexpr DWORD kTransientBackdrop = 3;
+constexpr int kTrayIconSize = 32;
+constexpr int kMaxNotifications = 6;
+constexpr int kNotificationTimeoutMs = 8000;
 }
 
 Backend::Backend(QObject* parent)
     : QObject(parent)
 {
+    traySystem_.start(
+        [this] {
+            QMetaObject::invokeMethod(this, [this] { emit trayIconsChanged(); }, Qt::QueuedConnection);
+        },
+        [this](const TrayNotification& notification) {
+            QMetaObject::invokeMethod(this,
+                                      [this, notification] { addNotification(notification); },
+                                      Qt::QueuedConnection);
+        });
+
     reloadApplications();
     refreshWindows();
 
@@ -40,13 +58,9 @@ Backend::Backend(QObject* parent)
 
 Backend::~Backend()
 {
+    traySystem_.stop();
     windowSystem_.stop();
-    if (appBarRegistered_ && panel_) {
-        APPBARDATA data{};
-        data.cbSize = sizeof(data);
-        data.hWnd = reinterpret_cast<HWND>(panel_->winId());
-        SHAppBarMessage(ABM_REMOVE, &data);
-    }
+    restoreWorkArea();
 }
 
 QVariantList Backend::windows() const
@@ -64,6 +78,16 @@ QVariantList Backend::applications() const
     result.reserve(static_cast<qsizetype>(applicationModel_.applications().size()));
     for (const auto& application : applicationModel_.applications())
         result.push_back(applicationMap(application));
+    return result;
+}
+
+QVariantList Backend::trayIcons() const
+{
+    QVariantList result;
+    for (const auto& icon : traySystem_.icons()) {
+        if (!icon.hidden)
+            result.push_back(trayIconMap(icon));
+    }
     return result;
 }
 
@@ -120,6 +144,23 @@ void Backend::reloadApplications()
     emit applicationsChanged();
 }
 
+void Backend::invokeTrayIcon(const QString& key, bool contextMenu)
+{
+    traySystem_.invoke(key.toStdWString(), contextMenu);
+}
+
+void Backend::dismissNotification(qulonglong id)
+{
+    for (qsizetype index = 0; index < notifications_.size(); ++index) {
+        const QVariantMap notification = notifications_.at(index).toMap();
+        if (notification.value(QStringLiteral("id")).toULongLong() == id) {
+            notifications_.removeAt(index);
+            emit notificationsChanged();
+            return;
+        }
+    }
+}
+
 void Backend::registerDesktop(QObject* object)
 {
     desktop_ = qobject_cast<QWindow*>(object);
@@ -169,6 +210,25 @@ void Backend::refreshWindows()
     emit windowsChanged();
 }
 
+void Backend::addNotification(const TrayNotification& notification)
+{
+    const qulonglong id = nextNotificationId_++;
+
+    QVariantMap map;
+    map.insert(QStringLiteral("id"), QVariant::fromValue<qulonglong>(id));
+    map.insert(QStringLiteral("title"), QString::fromStdWString(notification.title));
+    map.insert(QStringLiteral("body"), QString::fromStdWString(notification.body));
+    map.insert(QStringLiteral("source"), QString::fromStdWString(notification.source));
+    map.insert(QStringLiteral("timestamp"), QDateTime::currentDateTime().toString(QStringLiteral("HH:mm")));
+
+    notifications_.prepend(map);
+    while (notifications_.size() > kMaxNotifications)
+        notifications_.removeLast();
+    emit notificationsChanged();
+
+    QTimer::singleShot(kNotificationTimeoutMs, this, [this, id] { dismissNotification(id); });
+}
+
 QVariantMap Backend::windowMap(const WindowSnapshot& window)
 {
     QVariantMap map;
@@ -191,6 +251,70 @@ QVariantMap Backend::applicationMap(const ApplicationEntry& application)
     map.insert(QStringLiteral("iconPath"), QString::fromStdWString(application.iconPath));
     map.insert(QStringLiteral("packaged"), application.packaged);
     return map;
+}
+
+QVariantMap Backend::trayIconMap(const TrayIconSnapshot& icon)
+{
+    QVariantMap map;
+    map.insert(QStringLiteral("key"), QString::fromStdWString(icon.key));
+    map.insert(QStringLiteral("tooltip"), QString::fromStdWString(icon.tooltip));
+    map.insert(QStringLiteral("icon"), trayIconImage(icon.iconHandle));
+    map.insert(QStringLiteral("id"), icon.id);
+    return map;
+}
+
+QString Backend::trayIconImage(std::uintptr_t iconHandle)
+{
+    if (!iconHandle)
+        return {};
+
+    const HICON icon = reinterpret_cast<HICON>(iconHandle);
+    HDC screen = GetDC(nullptr);
+    if (!screen)
+        return {};
+
+    BITMAPINFO bitmapInfo{};
+    bitmapInfo.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
+    bitmapInfo.bmiHeader.biWidth = kTrayIconSize;
+    bitmapInfo.bmiHeader.biHeight = -kTrayIconSize;
+    bitmapInfo.bmiHeader.biPlanes = 1;
+    bitmapInfo.bmiHeader.biBitCount = 32;
+    bitmapInfo.bmiHeader.biCompression = BI_RGB;
+
+    void* bits = nullptr;
+    HBITMAP bitmap = CreateDIBSection(screen, &bitmapInfo, DIB_RGB_COLORS, &bits, nullptr, 0);
+    HDC memory = bitmap ? CreateCompatibleDC(screen) : nullptr;
+    if (!bitmap || !memory || !bits) {
+        if (memory)
+            DeleteDC(memory);
+        if (bitmap)
+            DeleteObject(bitmap);
+        ReleaseDC(nullptr, screen);
+        return {};
+    }
+
+    std::memset(bits, 0, kTrayIconSize * kTrayIconSize * 4);
+    const HGDIOBJ previous = SelectObject(memory, bitmap);
+    DrawIconEx(memory, 0, 0, icon, kTrayIconSize, kTrayIconSize, 0, nullptr, DI_NORMAL);
+
+    const QImage view(static_cast<const uchar*>(bits),
+                      kTrayIconSize,
+                      kTrayIconSize,
+                      kTrayIconSize * 4,
+                      QImage::Format_ARGB32_Premultiplied);
+    const QImage image = view.copy();
+
+    SelectObject(memory, previous);
+    DeleteDC(memory);
+    DeleteObject(bitmap);
+    ReleaseDC(nullptr, screen);
+
+    QByteArray bytes;
+    QBuffer buffer(&bytes);
+    if (!buffer.open(QIODevice::WriteOnly) || !image.save(&buffer, "PNG"))
+        return {};
+
+    return QStringLiteral("data:image/png;base64,") + QString::fromLatin1(bytes.toBase64());
 }
 
 bool Backend::enableShutdownPrivilege()
@@ -225,25 +349,32 @@ void Backend::exitWindows(unsigned flags)
 
 void Backend::reservePanel(QWindow* window)
 {
+    if (!window)
+        return;
+
+    if (!workAreaChanged_) {
+        if (!SystemParametersInfoW(SPI_GETWORKAREA, 0, &originalWorkArea_, 0))
+            return;
+        workAreaChanged_ = true;
+    }
+
     const HWND hwnd = reinterpret_cast<HWND>(window->winId());
-    APPBARDATA data{};
-    data.cbSize = sizeof(data);
-    data.hWnd = hwnd;
-    data.uCallbackMessage = kAppBarMessage;
+    const HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTOPRIMARY);
+    MONITORINFO info{};
+    info.cbSize = sizeof(info);
+    if (!GetMonitorInfoW(monitor, &info) || !(info.dwFlags & MONITORINFOF_PRIMARY))
+        return;
 
-    if (!appBarRegistered_)
-        appBarRegistered_ = SHAppBarMessage(ABM_NEW, &data) != 0;
+    RECT work = info.rcMonitor;
+    work.bottom = std::max(work.top, info.rcMonitor.bottom - window->height());
+    SystemParametersInfoW(SPI_SETWORKAREA, 0, &work, SPIF_SENDCHANGE);
+}
 
-    data.uEdge = ABE_BOTTOM;
-    data.rc.left = window->x();
-    data.rc.top = window->y();
-    data.rc.right = window->x() + window->width();
-    data.rc.bottom = window->y() + window->height();
-    SHAppBarMessage(ABM_QUERYPOS, &data);
-    data.rc.top = data.rc.bottom - window->height();
-    SHAppBarMessage(ABM_SETPOS, &data);
-
-    window->setPosition(data.rc.left, data.rc.top);
-    window->resize(data.rc.right - data.rc.left, data.rc.bottom - data.rc.top);
+void Backend::restoreWorkArea()
+{
+    if (!workAreaChanged_)
+        return;
+    SystemParametersInfoW(SPI_SETWORKAREA, 0, &originalWorkArea_, SPIF_SENDCHANGE);
+    workAreaChanged_ = false;
 }
 }
