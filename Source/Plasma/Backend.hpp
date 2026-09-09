@@ -95,6 +95,7 @@ public:
 
     Q_INVOKABLE QVariantList searchApplications(const QString& query) const;
     Q_INVOKABLE bool runCommand(const QString& command);
+    Q_INVOKABLE bool takeLauncherRequest() { return shortcutSystem_.takeLauncherRequest(); }
     Q_INVOKABLE void activateWindow(qulonglong id);
     Q_INVOKABLE void minimizeWindow(qulonglong id);
     Q_INVOKABLE void toggleMaximizeWindow(qulonglong id);
