@@ -29,6 +29,7 @@ constexpr DWORD kTransientBackdrop = 3;
 constexpr int kTrayIconSize = 32;
 constexpr int kMaxNotifications = 6;
 constexpr int kNotificationTimeoutMs = 8000;
+constexpr int kSystemStatusIntervalMs = 2000;
 }
 
 Backend::Backend(QObject* parent)
@@ -46,6 +47,7 @@ Backend::Backend(QObject* parent)
 
     reloadApplications();
     refreshWindows();
+    refreshSystemStatus();
 
     windowSystem_.start([this] {
         QMetaObject::invokeMethod(this, [this] { refreshWindows(); }, Qt::QueuedConnection);
@@ -54,6 +56,10 @@ Backend::Backend(QObject* parent)
     clockTimer_.setInterval(1000);
     connect(&clockTimer_, &QTimer::timeout, this, &Backend::clockChanged);
     clockTimer_.start();
+
+    statusTimer_.setInterval(kSystemStatusIntervalMs);
+    connect(&statusTimer_, &QTimer::timeout, this, &Backend::refreshSystemStatus);
+    statusTimer_.start();
 }
 
 Backend::~Backend()
@@ -161,6 +167,23 @@ void Backend::dismissNotification(qulonglong id)
     }
 }
 
+void Backend::setVolume(int volume)
+{
+    audioSystem_.setVolume(volume);
+    refreshSystemStatus();
+}
+
+void Backend::toggleMute()
+{
+    audioSystem_.toggleMuted();
+    refreshSystemStatus();
+}
+
+void Backend::suspend()
+{
+    powerSystem_.suspend();
+}
+
 void Backend::registerDesktop(QObject* object)
 {
     desktop_ = qobject_cast<QWindow*>(object);
@@ -208,6 +231,33 @@ void Backend::refreshWindows()
 {
     windowModel_.replace(windowSystem_.snapshot(), GetCurrentProcessId());
     emit windowsChanged();
+}
+
+void Backend::refreshSystemStatus()
+{
+    const AudioState audio = audioSystem_.state();
+    const PowerState power = powerSystem_.state();
+    const NetworkState network = networkSystem_.state();
+
+    const bool changed =
+        audio.available != audioState_.available ||
+        audio.volume != audioState_.volume ||
+        audio.muted != audioState_.muted ||
+        power.batteryAvailable != powerState_.batteryAvailable ||
+        power.batteryPercent != powerState_.batteryPercent ||
+        power.charging != powerState_.charging ||
+        power.onAc != powerState_.onAc ||
+        power.secondsRemaining != powerState_.secondsRemaining ||
+        network.connected != networkState_.connected ||
+        network.wifi != networkState_.wifi ||
+        network.name != networkState_.name ||
+        network.signalQuality != networkState_.signalQuality;
+
+    audioState_ = audio;
+    powerState_ = power;
+    networkState_ = network;
+    if (changed)
+        emit systemStatusChanged();
 }
 
 void Backend::addNotification(const TrayNotification& notification)
