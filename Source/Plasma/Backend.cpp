@@ -35,6 +35,7 @@ constexpr int kMaxNotificationHistory = 50;
 constexpr int kNotificationTimeoutMs = 8000;
 constexpr int kSystemStatusIntervalMs = 2000;
 constexpr int kDesktopRefreshIntervalMs = 3000;
+constexpr int kDisplayRefreshIntervalMs = 2000;
 }
 
 Backend::Backend(QObject* parent)
@@ -85,6 +86,7 @@ Backend::Backend(QObject* parent)
     });
 
     reloadApplications();
+    reloadDisplays();
     reloadDesktop();
     refreshWindows();
     refreshSystemStatus();
@@ -104,6 +106,10 @@ Backend::Backend(QObject* parent)
     desktopTimer_.setInterval(kDesktopRefreshIntervalMs);
     connect(&desktopTimer_, &QTimer::timeout, this, &Backend::reloadDesktop);
     desktopTimer_.start();
+
+    displayTimer_.setInterval(kDisplayRefreshIntervalMs);
+    connect(&displayTimer_, &QTimer::timeout, this, &Backend::reloadDisplays);
+    displayTimer_.start();
 
     if (QClipboard* clipboard = QGuiApplication::clipboard()) {
         connect(clipboard, &QClipboard::dataChanged, this, &Backend::captureClipboard);
@@ -135,6 +141,21 @@ QVariantList Backend::applications() const
     for (const auto& application : applicationModel_.applications())
         result.push_back(applicationMap(application));
     return result;
+}
+
+QVariantList Backend::displays() const
+{
+    QVariantList result;
+    result.reserve(static_cast<qsizetype>(displayModel_.displays().size()));
+    for (const auto& display : displayModel_.displays())
+        result.push_back(displayMap(display));
+    return result;
+}
+
+QVariantMap Backend::primaryDisplay() const
+{
+    const DisplaySnapshot* display = displayModel_.primary();
+    return display ? displayMap(*display) : QVariantMap{};
 }
 
 QVariantList Backend::desktopItems() const
@@ -260,6 +281,16 @@ void Backend::reloadApplications()
 {
     applicationModel_.replace(applications_.scan());
     emit applicationsChanged();
+}
+
+void Backend::reloadDisplays()
+{
+    DisplayModel nextModel;
+    nextModel.replace(displaySystem_.scan());
+    if (nextModel.displays() == displayModel_.displays())
+        return;
+    displayModel_ = std::move(nextModel);
+    emit displaysChanged();
 }
 
 void Backend::launchDesktopItem(const QString& id)
@@ -388,11 +419,12 @@ void Backend::suspend()
 
 void Backend::registerDesktop(QObject* object)
 {
-    desktop_ = qobject_cast<QWindow*>(object);
-    if (!desktop_)
+    QWindow* desktop = qobject_cast<QWindow*>(object);
+    if (!desktop)
         return;
+    desktop_ = desktop;
 
-    const HWND hwnd = reinterpret_cast<HWND>(desktop_->winId());
+    const HWND hwnd = reinterpret_cast<HWND>(desktop->winId());
     SetWindowPos(hwnd, HWND_BOTTOM, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE);
 }
 
@@ -568,6 +600,23 @@ QVariantMap Backend::applicationMap(const ApplicationEntry& application)
     map.insert(QStringLiteral("executable"), QString::fromStdWString(application.executable));
     map.insert(QStringLiteral("iconPath"), QString::fromStdWString(application.iconPath));
     map.insert(QStringLiteral("packaged"), application.packaged);
+    return map;
+}
+
+QVariantMap Backend::displayMap(const DisplaySnapshot& display)
+{
+    QVariantMap map;
+    map.insert(QStringLiteral("id"), QString::fromStdWString(display.id));
+    map.insert(QStringLiteral("name"), QString::fromStdWString(display.name));
+    map.insert(QStringLiteral("x"), display.x);
+    map.insert(QStringLiteral("y"), display.y);
+    map.insert(QStringLiteral("width"), display.width);
+    map.insert(QStringLiteral("height"), display.height);
+    map.insert(QStringLiteral("workX"), display.workX);
+    map.insert(QStringLiteral("workY"), display.workY);
+    map.insert(QStringLiteral("workWidth"), display.workWidth);
+    map.insert(QStringLiteral("workHeight"), display.workHeight);
+    map.insert(QStringLiteral("primary"), display.primary);
     return map;
 }
 
