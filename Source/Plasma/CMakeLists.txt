@@ -13,6 +13,7 @@ qt_standard_project_setup(REQUIRES 6.8)
 qt_add_executable(plasmashell
     main.cpp
     Backend.cpp
+    BackendSystem.cpp
     Backend.hpp
     ShellIconProvider.cpp
     ShellIconProvider.hpp
@@ -32,6 +33,10 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsPowerSystem.hpp
     ../Platform/Windows/WindowsNetworkSystem.cpp
     ../Platform/Windows/WindowsNetworkSystem.hpp
+    ../Platform/Windows/WindowsBluetoothSystem.cpp
+    ../Platform/Windows/WindowsBluetoothSystem.hpp
+    ../Platform/Windows/WindowsVirtualDesktopSystem.cpp
+    ../Platform/Windows/WindowsVirtualDesktopSystem.hpp
     ../Platform/Windows/WindowsShortcutSystem.cpp
     ../Platform/Windows/WindowsShortcutSystem.hpp
 )
@@ -72,6 +77,8 @@ target_link_libraries(plasmashell PRIVATE
     uuid
     PowrProf
     wlanapi
+    Bthprops
+    Dxva2
 )
 
 set_target_properties(plasmashell PROPERTIES
