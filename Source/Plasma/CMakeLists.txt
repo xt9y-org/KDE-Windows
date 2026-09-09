@@ -108,6 +108,7 @@ qt_add_executable(konsole
 )
 
 target_include_directories(konsole PRIVATE ../Terminal)
+set_source_files_properties(../Terminal/qml/Terminal.qml PROPERTIES QT_RESOURCE_ALIAS "Terminal.qml")
 
 qt_add_qml_module(konsole
     URI org.kde.konsole.windows
