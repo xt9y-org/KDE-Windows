@@ -7,13 +7,15 @@ Window {
     id: panel
     objectName: "plasmaPanel"
     visible: true
-    x: Screen.virtualX
-    y: Screen.virtualY + Screen.height - 48
-    width: Screen.width
+    x: displayData && displayData.x !== undefined ? displayData.x : Screen.virtualX
+    y: (displayData && displayData.y !== undefined ? displayData.y : Screen.virtualY) +
+       (displayData && displayData.height ? displayData.height : Screen.height) - height
+    width: displayData && displayData.width ? displayData.width : Screen.width
     height: 48
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
 
+    property var displayData: ({})
     signal launcherRequested()
     signal clipboardRequested()
     signal notificationCenterRequested()
