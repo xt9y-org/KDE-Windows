@@ -16,6 +16,7 @@ Window {
 
     signal launcherRequested()
     signal clipboardRequested()
+    signal notificationCenterRequested()
 
     Rectangle {
         anchors.fill: parent
@@ -183,6 +184,35 @@ Window {
                 background: Rectangle {
                     radius: 6
                     color: clipboardButton.down ? "#4a555e" : clipboardButton.hovered ? "#384047" : "transparent"
+                }
+            }
+
+            ToolButton {
+                id: notificationsButton
+                Layout.preferredWidth: 34
+                Layout.preferredHeight: 38
+                text: "N"
+                font.pixelSize: 14
+                font.bold: PlasmaBackend.notificationHistory.length > 0
+                hoverEnabled: true
+                onClicked: panel.notificationCenterRequested()
+                ToolTip.visible: hovered
+                ToolTip.text: "Notifications"
+                background: Rectangle {
+                    radius: 6
+                    color: notificationsButton.down ? "#4a555e" : notificationsButton.hovered ? "#384047" : "transparent"
+                }
+
+                Rectangle {
+                    visible: PlasmaBackend.notificationHistory.length > 0
+                    width: 8
+                    height: 8
+                    radius: 4
+                    color: "#3daee9"
+                    anchors.right: parent.right
+                    anchors.top: parent.top
+                    anchors.rightMargin: 4
+                    anchors.topMargin: 4
                 }
             }
 
