@@ -28,7 +28,7 @@ std::wstring addressId(const BLUETOOTH_ADDRESS& address)
     return buffer;
 }
 
-void collectDevices(HANDLE radio, BluetoothState& state)
+void collectDevices(HANDLE radio, BluetoothState& state, bool inquiry)
 {
     BLUETOOTH_DEVICE_SEARCH_PARAMS search{};
     search.dwSize = sizeof(search);
@@ -36,8 +36,8 @@ void collectDevices(HANDLE radio, BluetoothState& state)
     search.fReturnRemembered = TRUE;
     search.fReturnUnknown = TRUE;
     search.fReturnConnected = TRUE;
-    search.fIssueInquiry = FALSE;
-    search.cTimeoutMultiplier = 0;
+    search.fIssueInquiry = inquiry ? TRUE : FALSE;
+    search.cTimeoutMultiplier = inquiry ? 2 : 0;
     search.hRadio = radio;
 
     BLUETOOTH_DEVICE_INFO info{};
@@ -61,9 +61,8 @@ void collectDevices(HANDLE radio, BluetoothState& state)
 
     BluetoothFindDeviceClose(find);
 }
-}
 
-BluetoothState WindowsBluetoothSystem::state() const
+BluetoothState readState(bool inquiry)
 {
     BluetoothState result;
 
@@ -84,7 +83,7 @@ BluetoothState WindowsBluetoothSystem::state() const
         if (first && BluetoothGetRadioInfo(radio, &radioInfo) == ERROR_SUCCESS)
             result.radioName = radioInfo.szName;
 
-        collectDevices(radio, result);
+        collectDevices(radio, result, inquiry);
         CloseHandle(radio);
         radio = nullptr;
         first = false;
@@ -95,6 +94,17 @@ BluetoothState WindowsBluetoothSystem::state() const
     BluetoothFindRadioClose(find);
     normalizeBluetoothState(result);
     return result;
+}
+}
+
+BluetoothState WindowsBluetoothSystem::state() const
+{
+    return readState(false);
+}
+
+BluetoothState WindowsBluetoothSystem::scan() const
+{
+    return readState(true);
 }
 
 bool WindowsBluetoothSystem::setDiscoverable(bool enabled) const
