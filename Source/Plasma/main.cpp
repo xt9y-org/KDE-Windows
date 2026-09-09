@@ -1,4 +1,5 @@
 #include "Backend.hpp"
+#include "PanelBridge.hpp"
 #include "ShellIconProvider.hpp"
 
 #include <QCoreApplication>
@@ -40,10 +41,12 @@ int main(int argc, char** argv)
         QQuickStyle::setStyle(QStringLiteral("org.kde.desktop"));
 
         kde_windows::Backend backend;
+        kde_windows::PanelBridge panelBridge;
         QQmlApplicationEngine engine;
         engine.addImportPath(qmlRoot);
         engine.addImageProvider(QStringLiteral("shell"), new ShellIconProvider);
         engine.rootContext()->setContextProperty(QStringLiteral("PlasmaBackend"), &backend);
+        engine.rootContext()->setContextProperty(QStringLiteral("PanelBridge"), &panelBridge);
 
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] {
             QCoreApplication::exit(EXIT_FAILURE);
