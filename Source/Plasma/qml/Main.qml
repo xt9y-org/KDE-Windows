@@ -13,6 +13,8 @@ Item {
     property bool clipboardVisible: false
     property bool overviewVisible: false
     property bool notificationCenterVisible: false
+    property bool settingsVisible: false
+    property int settingsPage: 0
 
     function hidePopups() {
         launcherVisible = false
@@ -24,6 +26,7 @@ Item {
     function showRunner() {
         hidePopups()
         overviewVisible = false
+        settingsVisible = false
         runnerVisible = true
     }
 
@@ -32,6 +35,7 @@ Item {
         runnerVisible = false
         overviewVisible = false
         notificationCenterVisible = false
+        settingsVisible = false
         clipboardVisible = !clipboardVisible
     }
 
@@ -40,12 +44,21 @@ Item {
         runnerVisible = false
         clipboardVisible = false
         overviewVisible = false
+        settingsVisible = false
         notificationCenterVisible = !notificationCenterVisible
     }
 
     function showOverview() {
         hidePopups()
+        settingsVisible = false
         overviewVisible = !overviewVisible
+    }
+
+    function showSettings(page) {
+        hidePopups()
+        overviewVisible = false
+        settingsPage = page === undefined ? 0 : page
+        settingsVisible = true
     }
 
     Instantiator {
@@ -57,6 +70,7 @@ Item {
             displayData: modelData
             showIcons: modelData.primary
             onRunnerRequested: root.showRunner()
+            onSettingsRequested: root.showSettings(0)
             Component.onCompleted: PlasmaBackend.registerDesktop(desktopWindow)
         }
     }
@@ -69,10 +83,12 @@ Item {
             root.clipboardVisible = false
             root.notificationCenterVisible = false
             root.overviewVisible = false
+            root.settingsVisible = false
             root.launcherVisible = !root.launcherVisible
         }
         onClipboardRequested: root.showClipboard()
         onNotificationCenterRequested: root.showNotificationCenter()
+        onSettingsRequested: function(page) { root.showSettings(page) }
         Component.onCompleted: PlasmaBackend.registerPanel(panel)
     }
 
@@ -81,6 +97,7 @@ Item {
         visible: root.launcherVisible
         panelX: panel.x
         panelY: panel.y
+        onSettingsRequested: root.showSettings(0)
         onDismissed: root.launcherVisible = false
     }
 
@@ -100,6 +117,13 @@ Item {
         id: notificationCenter
         visible: root.notificationCenterVisible
         onDismissed: root.notificationCenterVisible = false
+    }
+
+    Settings {
+        id: settings
+        visible: root.settingsVisible
+        page: root.settingsPage
+        onDismissed: root.settingsVisible = false
     }
 
     Overview {
