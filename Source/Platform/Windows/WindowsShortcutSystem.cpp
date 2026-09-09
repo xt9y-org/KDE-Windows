@@ -8,6 +8,14 @@ namespace
 {
 constexpr wchar_t kShortcutClass[] = L"KDEWindowsShortcutHost";
 WindowsShortcutSystem* g_shortcutSystem = nullptr;
+
+void injectWinDown()
+{
+    INPUT input{};
+    input.type = INPUT_KEYBOARD;
+    input.ki.wVk = VK_LWIN;
+    SendInput(1, &input, sizeof(input));
+}
 }
 
 WindowsShortcutSystem::~WindowsShortcutSystem()
@@ -69,6 +77,8 @@ void WindowsShortcutSystem::stop()
     if (g_shortcutSystem == this)
         g_shortcutSystem = nullptr;
     switching_ = false;
+    winTapCandidate_ = false;
+    winInjectedForCombo_ = false;
 
     if (window_) {
         UnregisterHotKey(window_, kRunnerHotkeyId);
@@ -111,18 +121,49 @@ LRESULT CALLBACK WindowsShortcutSystem::keyboardProc(int code, WPARAM wparam, LP
         return CallNextHookEx(nullptr, code, wparam, lparam);
 
     const auto* key = reinterpret_cast<const KBDLLHOOKSTRUCT*>(lparam);
-    if (!key)
+    if (!key || (key->flags & LLKHF_INJECTED))
         return CallNextHookEx(nullptr, code, wparam, lparam);
 
     const bool keyDown = wparam == WM_KEYDOWN || wparam == WM_SYSKEYDOWN;
     const bool keyUp = wparam == WM_KEYUP || wparam == WM_SYSKEYUP;
+    const bool isWinKey = key->vkCode == VK_LWIN || key->vkCode == VK_RWIN;
+
+    if (keyDown && isWinKey) {
+        if (!self->winTapCandidate_ && !self->winInjectedForCombo_) {
+            self->winTapCandidate_ = true;
+            self->winInjectedForCombo_ = false;
+        }
+        return 1;
+    }
+
+    if (keyUp && isWinKey) {
+        if (self->winInjectedForCombo_) {
+            self->winInjectedForCombo_ = false;
+            self->winTapCandidate_ = false;
+            return CallNextHookEx(nullptr, code, wparam, lparam);
+        }
+
+        const bool launch = self->winTapCandidate_;
+        self->winTapCandidate_ = false;
+        if (launch)
+            self->callback_(ShortcutAction::Launcher);
+        return 1;
+    }
+
     const bool altDown = (GetAsyncKeyState(VK_MENU) & 0x8000) != 0;
     const bool winDown = (GetAsyncKeyState(VK_LWIN) & 0x8000) != 0 ||
                          (GetAsyncKeyState(VK_RWIN) & 0x8000) != 0;
 
     if (keyDown && key->vkCode == VK_TAB && winDown) {
+        self->winTapCandidate_ = false;
         self->callback_(ShortcutAction::Overview);
         return 1;
+    }
+
+    if (keyDown && self->winTapCandidate_ && winDown) {
+        self->winTapCandidate_ = false;
+        self->winInjectedForCombo_ = true;
+        injectWinDown();
     }
 
     if (keyDown && key->vkCode == VK_TAB && altDown) {
