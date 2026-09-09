@@ -104,6 +104,7 @@ public:
     Q_INVOKABLE void reloadApplications();
     Q_INVOKABLE void reloadDisplays();
     Q_INVOKABLE QVariantList displayModes(const QString& displayId) const;
+    Q_INVOKABLE QVariantMap currentDisplayMode(const QString& displayId) const;
     Q_INVOKABLE QVariantMap displayBrightness(const QString& displayId) const;
     Q_INVOKABLE bool setDisplayMode(const QString& displayId, int width, int height, int refreshRate);
     Q_INVOKABLE bool setPrimaryDisplay(const QString& displayId);
@@ -111,9 +112,12 @@ public:
     Q_INVOKABLE QVariantMap wifiState() const;
     Q_INVOKABLE bool setWifiEnabled(bool enabled);
     Q_INVOKABLE bool connectWifi(const QString& networkId);
+    Q_INVOKABLE bool connectWifiPassword(const QString& networkId, const QString& password);
     Q_INVOKABLE bool disconnectWifi();
     Q_INVOKABLE QVariantMap bluetoothState() const;
     Q_INVOKABLE bool setBluetoothDiscoverable(bool enabled);
+    Q_INVOKABLE bool pairBluetooth(const QString& deviceId);
+    Q_INVOKABLE bool removeBluetooth(const QString& deviceId);
     Q_INVOKABLE void launchDesktopItem(const QString& id);
     Q_INVOKABLE void reloadDesktop();
     Q_INVOKABLE bool setWallpaper(const QString& path);
