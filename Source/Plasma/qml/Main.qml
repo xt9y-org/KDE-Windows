@@ -39,6 +39,7 @@ Item {
 
     Desktop {
         id: desktop
+        onRunnerRequested: root.showRunner()
         Component.onCompleted: PlasmaBackend.registerDesktop(desktop)
     }
 
