@@ -4,12 +4,14 @@
 #include "Core/AudioState.hpp"
 #include "Core/ClipboardModel.hpp"
 #include "Core/DesktopModel.hpp"
+#include "Core/DisplayModel.hpp"
 #include "Core/SystemState.hpp"
 #include "Core/WindowModel.hpp"
 #include "Core/WindowSwitcher.hpp"
 #include "Platform/Windows/WindowsApplications.hpp"
 #include "Platform/Windows/WindowsAudioSystem.hpp"
 #include "Platform/Windows/WindowsDesktopSystem.hpp"
+#include "Platform/Windows/WindowsDisplaySystem.hpp"
 #include "Platform/Windows/WindowsNetworkSystem.hpp"
 #include "Platform/Windows/WindowsPowerSystem.hpp"
 #include "Platform/Windows/WindowsShortcutSystem.hpp"
@@ -20,6 +22,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <QVariantList>
+#include <QVariantMap>
 
 class QWindow;
 
@@ -30,6 +33,8 @@ class Backend final : public QObject
     Q_OBJECT
     Q_PROPERTY(QVariantList windows READ windows NOTIFY windowsChanged)
     Q_PROPERTY(QVariantList applications READ applications NOTIFY applicationsChanged)
+    Q_PROPERTY(QVariantList displays READ displays NOTIFY displaysChanged)
+    Q_PROPERTY(QVariantMap primaryDisplay READ primaryDisplay NOTIFY displaysChanged)
     Q_PROPERTY(QVariantList desktopItems READ desktopItems NOTIFY desktopChanged)
     Q_PROPERTY(QString wallpaperUrl READ wallpaperUrl NOTIFY desktopChanged)
     Q_PROPERTY(QVariantList trayIcons READ trayIcons NOTIFY trayIconsChanged)
@@ -58,6 +63,8 @@ public:
 
     [[nodiscard]] QVariantList windows() const;
     [[nodiscard]] QVariantList applications() const;
+    [[nodiscard]] QVariantList displays() const;
+    [[nodiscard]] QVariantMap primaryDisplay() const;
     [[nodiscard]] QVariantList desktopItems() const;
     [[nodiscard]] QString wallpaperUrl() const;
     [[nodiscard]] QVariantList trayIcons() const;
@@ -88,6 +95,7 @@ public:
     Q_INVOKABLE void closeWindow(qulonglong id);
     Q_INVOKABLE void launchApplication(const QString& id);
     Q_INVOKABLE void reloadApplications();
+    Q_INVOKABLE void reloadDisplays();
     Q_INVOKABLE void launchDesktopItem(const QString& id);
     Q_INVOKABLE void reloadDesktop();
     Q_INVOKABLE bool setWallpaper(const QString& path);
@@ -111,6 +119,7 @@ public:
 signals:
     void windowsChanged();
     void applicationsChanged();
+    void displaysChanged();
     void desktopChanged();
     void trayIconsChanged();
     void notificationsChanged();
@@ -132,6 +141,7 @@ private:
     void commitWindowSwitcher();
     static QVariantMap windowMap(const WindowSnapshot& window);
     static QVariantMap applicationMap(const ApplicationEntry& application);
+    static QVariantMap displayMap(const DisplaySnapshot& display);
     static QVariantMap desktopMap(const DesktopEntry& entry);
     static QVariantMap trayIconMap(const TrayIconSnapshot& icon);
     static QString trayIconImage(std::uintptr_t iconHandle);
@@ -143,10 +153,12 @@ private:
 
     WindowModel windowModel_;
     ApplicationModel applicationModel_;
+    DisplayModel displayModel_;
     DesktopModel desktopModel_;
     ClipboardModel clipboardModel_;
     WindowsWindowSystem windowSystem_;
     WindowsApplications applications_;
+    WindowsDisplaySystem displaySystem_;
     WindowsDesktopSystem desktopSystem_;
     WindowsTraySystem traySystem_;
     WindowsAudioSystem audioSystem_;
@@ -159,6 +171,7 @@ private:
     QTimer clockTimer_;
     QTimer statusTimer_;
     QTimer desktopTimer_;
+    QTimer displayTimer_;
     QVariantList notifications_;
     QVariantList notificationHistory_;
     std::wstring wallpaperPath_;
