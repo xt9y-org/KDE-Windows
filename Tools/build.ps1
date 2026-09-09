@@ -18,9 +18,9 @@ $msvcLibraries = @('user32.lib', 'gdi32.lib', 'shell32.lib', 'dwmapi.lib', 'ole3
 function Invoke-MSVC {
     param([string]$Compiler)
 
-    $args = @('/nologo', '/std:c++20', '/O2', '/EHsc', '/DUNICODE', '/D_UNICODE', '/DNOMINMAX', '/I', 'Source') +
-            $sources + @('/Fe:' + $output, '/link', '/SUBSYSTEM:WINDOWS') + $msvcLibraries
-    & $Compiler @args
+    $compilerArgs = @('/nologo', '/std:c++20', '/O2', '/EHsc', '/DUNICODE', '/D_UNICODE', '/DNOMINMAX', '/I', 'Source') +
+                    $sources + @('/Fe' + $output, '/link', '/SUBSYSTEM:WINDOWS') + $msvcLibraries
+    & $Compiler @compilerArgs
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
@@ -46,7 +46,7 @@ if (Test-Path $vswhere) {
         $libraries = $msvcLibraries -join ' '
         $command = '"' + $devcmd + '" -no_logo -arch=' + $arch + ' -host_arch=' + $arch +
                    ' && cl.exe /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /DNOMINMAX /I Source ' +
-                   $quotedSources + ' /Fe:' + $output + ' /link /SUBSYSTEM:WINDOWS ' + $libraries
+                   $quotedSources + ' /Fe' + $output + ' /link /SUBSYSTEM:WINDOWS ' + $libraries
         & cmd.exe /d /s /c $command
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         exit 0
