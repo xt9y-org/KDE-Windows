@@ -5,6 +5,23 @@
 
 namespace kde_windows
 {
+QVariantList Backend::displayModes(const QString& displayId) const
+{
+    const auto modes = displaySystem_.modes(displayId.toStdWString());
+    QVariantList result;
+    result.reserve(static_cast<qsizetype>(modes.size()));
+    for (const auto& mode : modes) {
+        QVariantMap item;
+        item.insert(QStringLiteral("width"), mode.width);
+        item.insert(QStringLiteral("height"), mode.height);
+        item.insert(QStringLiteral("refreshRate"), mode.refreshRate);
+        item.insert(QStringLiteral("bitsPerPixel"), mode.bitsPerPixel);
+        item.insert(QStringLiteral("label"), QStringLiteral("%1×%2 @ %3 Hz").arg(mode.width).arg(mode.height).arg(mode.refreshRate));
+        result.push_back(item);
+    }
+    return result;
+}
+
 QVariantMap Backend::displayBrightness(const QString& displayId) const
 {
     QVariantMap result;
@@ -18,6 +35,22 @@ QVariantMap Backend::displayBrightness(const QString& displayId) const
     result.insert(QStringLiteral("available"), display->brightnessAvailable);
     result.insert(QStringLiteral("percent"), display->brightnessPercent);
     return result;
+}
+
+bool Backend::setDisplayMode(const QString& displayId, int width, int height, int refreshRate)
+{
+    if (!displaySystem_.setMode(displayId.toStdWString(), width, height, refreshRate))
+        return false;
+    reloadDisplays();
+    return true;
+}
+
+bool Backend::setPrimaryDisplay(const QString& displayId)
+{
+    if (!displaySystem_.setPrimary(displayId.toStdWString()))
+        return false;
+    reloadDisplays();
+    return true;
 }
 
 bool Backend::setDisplayBrightness(const QString& displayId, int percent)
