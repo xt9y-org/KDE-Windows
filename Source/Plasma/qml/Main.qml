@@ -12,11 +12,13 @@ Item {
     property bool runnerVisible: false
     property bool clipboardVisible: false
     property bool overviewVisible: false
+    property bool notificationCenterVisible: false
 
     function hidePopups() {
         launcherVisible = false
         runnerVisible = false
         clipboardVisible = false
+        notificationCenterVisible = false
     }
 
     function showRunner() {
@@ -29,7 +31,16 @@ Item {
         launcherVisible = false
         runnerVisible = false
         overviewVisible = false
+        notificationCenterVisible = false
         clipboardVisible = !clipboardVisible
+    }
+
+    function showNotificationCenter() {
+        launcherVisible = false
+        runnerVisible = false
+        clipboardVisible = false
+        overviewVisible = false
+        notificationCenterVisible = !notificationCenterVisible
     }
 
     function showOverview() {
@@ -48,10 +59,12 @@ Item {
         onLauncherRequested: {
             root.runnerVisible = false
             root.clipboardVisible = false
+            root.notificationCenterVisible = false
             root.overviewVisible = false
             root.launcherVisible = !root.launcherVisible
         }
         onClipboardRequested: root.showClipboard()
+        onNotificationCenterRequested: root.showNotificationCenter()
         Component.onCompleted: PlasmaBackend.registerPanel(panel)
     }
 
@@ -73,6 +86,12 @@ Item {
         id: clipboard
         visible: root.clipboardVisible
         onDismissed: root.clipboardVisible = false
+    }
+
+    NotificationCenter {
+        id: notificationCenter
+        visible: root.notificationCenterVisible
+        onDismissed: root.notificationCenterVisible = false
     }
 
     Overview {
