@@ -44,6 +44,8 @@ qt_add_qml_module(plasmashell
         qml/StatusArea.qml
         qml/Runner.qml
         qml/Clipboard.qml
+        qml/WindowSwitcher.qml
+        qml/Overview.qml
 )
 
 target_compile_definitions(plasmashell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
