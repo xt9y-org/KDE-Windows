@@ -4,6 +4,7 @@
 #include <QMetaObject>
 
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <string>
 #include <vector>
@@ -69,20 +70,32 @@ bool ConPtySession::start()
 
     SIZE_T attributeBytes = 0;
     InitializeProcThreadAttributeList(nullptr, 1, 0, &attributeBytes);
-    std::vector<std::byte> attributeStorage(attributeBytes);
+    if (attributeBytes == 0) {
+        stop();
+        return false;
+    }
 
+    std::vector<std::byte> attributeStorage(attributeBytes);
     STARTUPINFOEXW startup{};
     startup.StartupInfo.cb = sizeof(startup);
     startup.lpAttributeList = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attributeStorage.data());
-    if (!InitializeProcThreadAttributeList(startup.lpAttributeList, 1, 0, &attributeBytes) ||
-        !UpdateProcThreadAttribute(startup.lpAttributeList,
+
+    bool attributeListInitialized = false;
+    if (!InitializeProcThreadAttributeList(startup.lpAttributeList, 1, 0, &attributeBytes)) {
+        stop();
+        return false;
+    }
+    attributeListInitialized = true;
+
+    if (!UpdateProcThreadAttribute(startup.lpAttributeList,
                                    0,
                                    PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE,
                                    pseudoConsole_,
                                    sizeof(HPCON),
                                    nullptr,
                                    nullptr)) {
-        DeleteProcThreadAttributeList(startup.lpAttributeList);
+        if (attributeListInitialized)
+            DeleteProcThreadAttributeList(startup.lpAttributeList);
         stop();
         return false;
     }
