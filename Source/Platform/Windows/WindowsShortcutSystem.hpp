@@ -26,9 +26,12 @@ public:
 
 private:
     static LRESULT CALLBACK windowProc(HWND window, UINT message, WPARAM wparam, LPARAM lparam);
+    static LRESULT CALLBACK keyboardProc(int code, WPARAM wparam, LPARAM lparam);
 
     HWND window_ = nullptr;
+    HHOOK keyboardHook_ = nullptr;
     ATOM classAtom_ = 0;
+    bool switching_ = false;
     Callback callback_;
 };
 }
