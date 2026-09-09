@@ -143,6 +143,104 @@ std::vector<DisplaySnapshot> WindowsDisplaySystem::scan() const
     return displays;
 }
 
+std::vector<DisplayModeSnapshot> WindowsDisplaySystem::modes(const std::wstring& displayId) const
+{
+    std::vector<DisplayModeSnapshot> result;
+    if (displayId.empty())
+        return result;
+
+    for (DWORD index = 0;; ++index) {
+        DEVMODEW mode{};
+        mode.dmSize = sizeof(mode);
+        if (!EnumDisplaySettingsExW(displayId.c_str(), index, &mode, 0))
+            break;
+
+        result.push_back({
+            static_cast<int>(mode.dmPelsWidth),
+            static_cast<int>(mode.dmPelsHeight),
+            static_cast<int>(mode.dmDisplayFrequency),
+            static_cast<int>(mode.dmBitsPerPel),
+        });
+    }
+
+    normalizeDisplayModes(result);
+    return result;
+}
+
+bool WindowsDisplaySystem::setMode(const std::wstring& displayId, int width, int height, int refreshRate) const
+{
+    if (displayId.empty() || width <= 0 || height <= 0 || refreshRate <= 0)
+        return false;
+
+    DEVMODEW mode{};
+    mode.dmSize = sizeof(mode);
+    if (!EnumDisplaySettingsExW(displayId.c_str(), ENUM_CURRENT_SETTINGS, &mode, 0))
+        return false;
+
+    mode.dmPelsWidth = static_cast<DWORD>(width);
+    mode.dmPelsHeight = static_cast<DWORD>(height);
+    mode.dmDisplayFrequency = static_cast<DWORD>(refreshRate);
+    mode.dmFields |= DM_PELSWIDTH | DM_PELSHEIGHT | DM_DISPLAYFREQUENCY;
+
+    return ChangeDisplaySettingsExW(displayId.c_str(),
+                                    &mode,
+                                    nullptr,
+                                    CDS_UPDATEREGISTRY,
+                                    nullptr) == DISP_CHANGE_SUCCESSFUL;
+}
+
+bool WindowsDisplaySystem::setPrimary(const std::wstring& displayId) const
+{
+    if (displayId.empty())
+        return false;
+
+    DEVMODEW target{};
+    target.dmSize = sizeof(target);
+    if (!EnumDisplaySettingsExW(displayId.c_str(), ENUM_CURRENT_SETTINGS, &target, 0))
+        return false;
+
+    const LONG offsetX = -target.dmPosition.x;
+    const LONG offsetY = -target.dmPosition.y;
+    bool foundTarget = false;
+    bool stagedAny = false;
+
+    for (DWORD index = 0;; ++index) {
+        DISPLAY_DEVICEW device{};
+        device.cb = sizeof(device);
+        if (!EnumDisplayDevicesW(nullptr, index, &device, 0))
+            break;
+        if (!(device.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) ||
+            (device.StateFlags & DISPLAY_DEVICE_MIRRORING_DRIVER)) {
+            continue;
+        }
+
+        DEVMODEW mode{};
+        mode.dmSize = sizeof(mode);
+        if (!EnumDisplaySettingsExW(device.DeviceName, ENUM_CURRENT_SETTINGS, &mode, 0))
+            continue;
+
+        const bool isTarget = _wcsicmp(device.DeviceName, displayId.c_str()) == 0;
+        mode.dmPosition.x += offsetX;
+        mode.dmPosition.y += offsetY;
+        mode.dmFields = DM_POSITION;
+
+        DWORD flags = CDS_UPDATEREGISTRY | CDS_NORESET;
+        if (isTarget) {
+            flags |= CDS_SET_PRIMARY;
+            foundTarget = true;
+        }
+
+        const LONG result = ChangeDisplaySettingsExW(device.DeviceName, &mode, nullptr, flags, nullptr);
+        if (result == DISP_CHANGE_SUCCESSFUL)
+            stagedAny = true;
+    }
+
+    if (!foundTarget || !stagedAny)
+        return false;
+
+    return ChangeDisplaySettingsExW(nullptr, nullptr, nullptr, 0, nullptr) == DISP_CHANGE_SUCCESSFUL;
+}
+
 bool WindowsDisplaySystem::setBrightness(const std::wstring& displayId, int percent) const
 {
     if (displayId.empty())
