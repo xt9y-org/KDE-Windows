@@ -70,9 +70,9 @@ function Copy-DirectoryContents {
 }
 
 function Find-CraftRuntimeExecutable {
-    param([string]$CraftRoot, [string]$Name)
+    param([string]$RuntimeRoot, [string]$Name)
 
-    $binRoot = Join-Path $CraftRoot 'bin'
+    $binRoot = Join-Path $RuntimeRoot 'bin'
     $direct = Join-Path $binRoot $Name
     if (Test-Path -LiteralPath $direct -PathType Leaf) {
         return (Resolve-Path -LiteralPath $direct).Path
@@ -217,13 +217,16 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 & $deploy.Source --release --qmldir (Join-Path $root 'Source\Terminal\qml') $konsoleExe
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
-$craftRoot = if ($env:CraftRoot) { $env:CraftRoot } else { $craftPrefix }
-$craftBin = Join-Path $craftRoot 'bin'
-Copy-DirectoryContents (Join-Path $craftRoot 'qml') (Join-Path $plasmaRoot 'qml')
-Copy-DirectoryContents (Join-Path $craftRoot 'plugins') (Join-Path $plasmaRoot 'plugins')
-Copy-DirectoryContents (Join-Path $craftRoot 'bin\data') (Join-Path $plasmaRoot 'bin\data')
-Copy-DirectoryContents (Join-Path $craftRoot 'share') (Join-Path $plasmaRoot 'share')
-Copy-DirectoryContents (Join-Path $craftRoot 'libexec') (Join-Path $plasmaRoot 'libexec')
+# CraftRoot is the Craft source checkout (...\CraftRoot\craft), not the installed KDE prefix.
+# KDEROOT is the configured runtime prefix produced by CraftSetupHelper; the bootstrap prefix is
+# an equivalent fallback for our private Craft installation.
+$craftRuntimeRoot = if ($env:KDEROOT) { $env:KDEROOT } else { $craftPrefix }
+$craftBin = Join-Path $craftRuntimeRoot 'bin'
+Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'qml') (Join-Path $plasmaRoot 'qml')
+Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'plugins') (Join-Path $plasmaRoot 'plugins')
+Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'bin\data') (Join-Path $plasmaRoot 'bin\data')
+Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'share') (Join-Path $plasmaRoot 'share')
+Copy-DirectoryContents (Join-Path $craftRuntimeRoot 'libexec') (Join-Path $plasmaRoot 'libexec')
 
 Get-ChildItem $craftBin -Filter '*.dll' -File -ErrorAction SilentlyContinue |
     ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
@@ -233,9 +236,10 @@ Get-ChildItem $craftBin -Filter '*.exe' -File -ErrorAction SilentlyContinue |
         if (-not (Test-Path $destination)) { Copy-Item -Force $_.FullName $destination }
     }
 
-$dolphinSource = Find-CraftRuntimeExecutable -CraftRoot $craftRoot -Name 'dolphin.exe'
+$dolphinSource = Find-CraftRuntimeExecutable -RuntimeRoot $craftRuntimeRoot -Name 'dolphin.exe'
 if (-not $dolphinSource) {
-    Write-Host "Craft runtime root: $craftRoot"
+    Write-Host "Craft runtime root: $craftRuntimeRoot"
+    Write-Host "Craft source root: $env:CraftRoot"
     Write-Host 'Craft install database entries for Dolphin:'
     & craft -q --ci-mode --print-files kde/applications/dolphin | Out-Host
     throw "Dolphin is registered as installed by Craft, but dolphin.exe was not found below $craftBin."
