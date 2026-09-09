@@ -1,4 +1,5 @@
 #include "Backend.hpp"
+#include "ShellIconProvider.hpp"
 
 #include <QCoreApplication>
 #include <QDir>
@@ -41,6 +42,7 @@ int main(int argc, char** argv)
         kde_windows::Backend backend;
         QQmlApplicationEngine engine;
         engine.addImportPath(qmlRoot);
+        engine.addImageProvider(QStringLiteral("shell"), new ShellIconProvider);
         engine.rootContext()->setContextProperty(QStringLiteral("PlasmaBackend"), &backend);
 
         QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed, &app, [] {
