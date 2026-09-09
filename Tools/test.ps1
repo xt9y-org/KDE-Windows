@@ -32,3 +32,4 @@ foreach ($test in $tests) {
 & (Join-Path $root 'Tests\CraftEnvironment.ps1')
 & (Join-Path $root 'Tests\QmlModuleLayout.ps1')
 & (Join-Path $root 'Tests\WindowsHeaderContracts.ps1')
+& (Join-Path $root 'Tests\WindowsApplicationsHeaders.ps1')
