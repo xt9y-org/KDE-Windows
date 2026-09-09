@@ -9,6 +9,20 @@ Item {
     id: root
 
     property bool launcherVisible: false
+    property bool runnerVisible: false
+    property bool clipboardVisible: false
+
+    function showRunner() {
+        launcherVisible = false
+        clipboardVisible = false
+        runnerVisible = true
+    }
+
+    function showClipboard() {
+        launcherVisible = false
+        runnerVisible = false
+        clipboardVisible = !clipboardVisible
+    }
 
     Desktop {
         id: desktop
@@ -17,7 +31,12 @@ Item {
 
     Panel {
         id: panel
-        onLauncherRequested: root.launcherVisible = !root.launcherVisible
+        onLauncherRequested: {
+            root.runnerVisible = false
+            root.clipboardVisible = false
+            root.launcherVisible = !root.launcherVisible
+        }
+        onClipboardRequested: root.showClipboard()
         Component.onCompleted: PlasmaBackend.registerPanel(panel)
     }
 
@@ -27,6 +46,24 @@ Item {
         panelX: panel.x
         panelY: panel.y
         onDismissed: root.launcherVisible = false
+    }
+
+    Runner {
+        id: runner
+        visible: root.runnerVisible
+        onDismissed: root.runnerVisible = false
+    }
+
+    Clipboard {
+        id: clipboard
+        visible: root.clipboardVisible
+        onDismissed: root.clipboardVisible = false
+    }
+
+    Connections {
+        target: PlasmaBackend
+        function onRunnerRequested() { root.showRunner() }
+        function onClipboardRequested() { root.showClipboard() }
     }
 
     Notifications {}
