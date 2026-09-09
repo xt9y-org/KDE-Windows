@@ -29,6 +29,7 @@ ColumnLayout {
                     id: displayCard
                     required property var modelData
                     property var brightnessInfo: PlasmaBackend.displayBrightness(modelData.id)
+                    property var currentMode: PlasmaBackend.currentDisplayMode(modelData.id)
                     property var modes: PlasmaBackend.displayModes(modelData.id)
                     property int selectedMode: -1
 
@@ -38,16 +39,20 @@ ColumnLayout {
                     color: "#2b3035"
                     border.color: modelData.primary ? "#3daee9" : "#434b52"
 
-                    Component.onCompleted: {
+                    function selectCurrentMode() {
+                        selectedMode = -1
                         for (let i = 0; i < modes.length; ++i) {
-                            if (modes[i].width === modelData.width &&
-                                modes[i].height === modelData.height &&
-                                modes[i].refreshRate === modelData.refreshRate) {
+                            if (modes[i].width === currentMode.width &&
+                                modes[i].height === currentMode.height &&
+                                modes[i].refreshRate === currentMode.refreshRate) {
                                 selectedMode = i
                                 break
                             }
                         }
                     }
+
+                    Component.onCompleted: selectCurrentMode()
+                    onCurrentModeChanged: selectCurrentMode()
 
                     ColumnLayout {
                         anchors.fill: parent
@@ -64,8 +69,8 @@ ColumnLayout {
                                 font.pixelSize: 15
                             }
                             Label {
-                                text: modelData.width + "×" + modelData.height +
-                                      (modelData.refreshRate > 0 ? " @ " + modelData.refreshRate + " Hz" : "")
+                                text: displayCard.currentMode.width + "×" + displayCard.currentMode.height +
+                                      (displayCard.currentMode.refreshRate > 0 ? " @ " + displayCard.currentMode.refreshRate + " Hz" : "")
                                 color: "#aeb5ba"
                             }
                         }
@@ -92,8 +97,10 @@ ColumnLayout {
                                 enabled: modeBox.currentIndex >= 0
                                 onClicked: {
                                     const mode = displayCard.modes[modeBox.currentIndex]
-                                    if (mode && PlasmaBackend.setDisplayMode(modelData.id, mode.width, mode.height, mode.refreshRate))
-                                        PlasmaBackend.reloadDisplays()
+                                    if (mode && PlasmaBackend.setDisplayMode(modelData.id, mode.width, mode.height, mode.refreshRate)) {
+                                        displayCard.currentMode = PlasmaBackend.currentDisplayMode(modelData.id)
+                                        displayCard.selectCurrentMode()
+                                    }
                                 }
                             }
                             Button {
