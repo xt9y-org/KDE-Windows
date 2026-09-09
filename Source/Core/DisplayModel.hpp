@@ -22,6 +22,7 @@ struct DisplaySnapshot
     bool primary = false;
     bool brightnessAvailable = false;
     int brightnessPercent = -1;
+    int refreshRate = 0;
 
     bool operator==(const DisplaySnapshot&) const = default;
 };
@@ -40,6 +41,7 @@ public:
                 display.brightnessPercent = std::clamp(display.brightnessPercent, 0, 100);
             else
                 display.brightnessPercent = -1;
+            display.refreshRate = std::max(display.refreshRate, 0);
         }
 
         std::stable_sort(displays.begin(), displays.end(), [](const DisplaySnapshot& a, const DisplaySnapshot& b) {
