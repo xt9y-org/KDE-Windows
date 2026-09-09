@@ -16,6 +16,7 @@ Window {
     property var displayData: ({})
     property bool showIcons: true
     signal runnerRequested()
+    signal settingsRequested()
 
     Rectangle {
         anchors.fill: parent
@@ -107,6 +108,7 @@ Window {
     Menu {
         id: desktopMenu
         MenuItem { text: "Refresh Desktop"; onTriggered: PlasmaBackend.reloadDesktop() }
+        MenuItem { text: "System Settings"; onTriggered: desktop.settingsRequested() }
         MenuSeparator {}
         MenuItem { text: "Open Runner"; onTriggered: desktop.runnerRequested() }
     }
