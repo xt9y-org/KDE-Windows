@@ -10,6 +10,7 @@
 #include <wtypes.h>
 #include <propkey.h>
 #include <propsys.h>
+#include <propvarutil.h>
 #include <shellapi.h>
 #include <shlobj.h>
 #include <shobjidl.h>
