@@ -15,6 +15,8 @@ struct DesktopEntry
     std::wstring name;
     std::wstring path;
     bool directory = false;
+
+    bool operator==(const DesktopEntry&) const = default;
 };
 
 class DesktopModel final
