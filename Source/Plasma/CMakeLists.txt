@@ -26,6 +26,8 @@ qt_add_executable(plasmashell
     ../Platform/Windows/WindowsPowerSystem.hpp
     ../Platform/Windows/WindowsNetworkSystem.cpp
     ../Platform/Windows/WindowsNetworkSystem.hpp
+    ../Platform/Windows/WindowsShortcutSystem.cpp
+    ../Platform/Windows/WindowsShortcutSystem.hpp
 )
 
 target_include_directories(plasmashell PRIVATE ..)
@@ -40,6 +42,8 @@ qt_add_qml_module(plasmashell
         qml/Launcher.qml
         qml/Notifications.qml
         qml/StatusArea.qml
+        qml/Runner.qml
+        qml/Clipboard.qml
 )
 
 target_compile_definitions(plasmashell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
