@@ -17,7 +17,7 @@ $objectDir = 'build\shell-obj'
 $msvcLibraries = @('user32.lib', 'gdi32.lib', 'shell32.lib', 'dwmapi.lib', 'ole32.lib', 'propsys.lib', 'uuid.lib')
 New-Item -ItemType Directory -Force -Path $objectDir | Out-Null
 
-function Resolve-MSVCLinker {
+function Resolve-MSVCLinkerName {
     param([string]$Compiler)
 
     $compilerDir = Split-Path -Parent $Compiler
@@ -25,12 +25,10 @@ function Resolve-MSVCLinker {
     $preferred = if ($compilerName -ieq 'clang-cl.exe') { @('lld-link.exe', 'link.exe') } else { @('link.exe', 'lld-link.exe') }
 
     foreach ($name in $preferred) {
-        $sibling = Join-Path $compilerDir $name
-        if (Test-Path $sibling) { return $sibling }
+        if (Test-Path (Join-Path $compilerDir $name)) { return $name }
     }
     foreach ($name in $preferred) {
-        $command = Get-Command $name -ErrorAction SilentlyContinue
-        if ($command) { return $command.Source }
+        if (Get-Command $name -ErrorAction SilentlyContinue) { return $name }
     }
 
     throw "No linker found for $Compiler."
@@ -39,42 +37,32 @@ function Resolve-MSVCLinker {
 function Invoke-MSVC {
     param([string]$Compiler)
 
+    $compilerName = [System.IO.Path]::GetFileName($Compiler)
+    $linkerName = Resolve-MSVCLinkerName $Compiler
     $objects = @()
+
+    Write-Host 'MSVC shell build: cmd.exe compile/link'
+
     foreach ($source in $sources) {
         $base = [System.IO.Path]::GetFileNameWithoutExtension($source)
         $object = Join-Path $objectDir ($base + '.obj')
-        $compileResponse = Join-Path $objectDir ($base + '.compile.rsp')
-        $compileOptions = @(
-            '/nologo',
-            '/std:c++20',
-            '/O2',
-            '/EHsc',
-            '/DUNICODE',
-            '/D_UNICODE',
-            '/DNOMINMAX',
-            '/ISource',
-            '/c',
-            $source,
-            '/Fo' + $object
-        )
-        Set-Content -LiteralPath $compileResponse -Encoding ASCII -Value $compileOptions
-        $compileResponseArg = '@' + $compileResponse
-        & $Compiler $compileResponseArg
+        $compileCommand = $compilerName +
+            ' /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /DNOMINMAX /ISource /c ' +
+            $source + ' /Fo' + $object
+
+        & cmd.exe /d /s /c $compileCommand
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if (-not (Test-Path $object)) { throw "Compiler did not produce $object." }
         $objects += $object
     }
 
-    $linker = Resolve-MSVCLinker $Compiler
-    $linkResponse = Join-Path $objectDir 'link.rsp'
-    $linkOptions = @(
-        '/nologo',
-        '/SUBSYSTEM:WINDOWS',
-        '/OUT:' + $output
-    ) + $objects + $msvcLibraries
-    Set-Content -LiteralPath $linkResponse -Encoding ASCII -Value $linkOptions
-    $linkResponseArg = '@' + $linkResponse
-    & $linker $linkResponseArg
+    $linkCommand = $linkerName +
+        ' /nologo /SUBSYSTEM:WINDOWS /OUT:' + $output + ' ' +
+        ($objects -join ' ') + ' ' + ($msvcLibraries -join ' ')
+
+    & cmd.exe /d /s /c $linkCommand
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+    if (-not (Test-Path $output)) { throw "Linker did not produce $output." }
 }
 
 $cl = Get-Command cl.exe -ErrorAction SilentlyContinue
@@ -101,17 +89,16 @@ if (Test-Path $vswhere) {
         foreach ($source in $sources) {
             $object = Join-Path $objectDir ([System.IO.Path]::GetFileNameWithoutExtension($source) + '.obj')
             $objects += $object
-            $compileCommands += 'cl.exe /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /DNOMINMAX /I Source /c "' + $source + '" /Fo"' + $object + '"'
+            $compileCommands += 'cl.exe /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /DNOMINMAX /ISource /c ' + $source + ' /Fo' + $object
         }
 
-        $quotedObjects = ($objects | ForEach-Object { '"' + $_ + '"' }) -join ' '
-        $libraries = $msvcLibraries -join ' '
-        $linkCommand = 'link.exe /nologo /SUBSYSTEM:WINDOWS /OUT:"' + $output + '" ' + $quotedObjects + ' ' + $libraries
+        $linkCommand = 'link.exe /nologo /SUBSYSTEM:WINDOWS /OUT:' + $output + ' ' + ($objects -join ' ') + ' ' + ($msvcLibraries -join ' ')
         $command = '"' + $devcmd + '" -no_logo -arch=' + $arch + ' -host_arch=' + $arch +
-                   ' && ' + (($compileCommands + $linkCommand) -join ' && ')
+                   ' && echo MSVC shell build: cmd.exe compile/link && ' + (($compileCommands + $linkCommand) -join ' && ')
 
         & cmd.exe /d /s /c $command
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        if (-not (Test-Path $output)) { throw "Linker did not produce $output." }
         exit 0
     }
 }
