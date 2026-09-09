@@ -2,6 +2,7 @@
 
 #include "Core/ApplicationModel.hpp"
 #include "Core/AudioState.hpp"
+#include "Core/ClipboardModel.hpp"
 #include "Core/SystemState.hpp"
 #include "Core/WindowModel.hpp"
 #include "Platform/Windows/WindowsApplications.hpp"
@@ -12,6 +13,7 @@
 #include "Platform/Windows/WindowsWindowSystem.hpp"
 
 #include <QObject>
+#include <QStringList>
 #include <QTimer>
 #include <QVariantList>
 
@@ -26,6 +28,7 @@ class Backend final : public QObject
     Q_PROPERTY(QVariantList applications READ applications NOTIFY applicationsChanged)
     Q_PROPERTY(QVariantList trayIcons READ trayIcons NOTIFY trayIconsChanged)
     Q_PROPERTY(QVariantList notifications READ notifications NOTIFY notificationsChanged)
+    Q_PROPERTY(QStringList clipboardEntries READ clipboardEntries NOTIFY clipboardChanged)
     Q_PROPERTY(QString clockText READ clockText NOTIFY clockChanged)
     Q_PROPERTY(QString dateText READ dateText NOTIFY clockChanged)
     Q_PROPERTY(bool audioAvailable READ audioAvailable NOTIFY systemStatusChanged)
@@ -48,6 +51,7 @@ public:
     [[nodiscard]] QVariantList applications() const;
     [[nodiscard]] QVariantList trayIcons() const;
     [[nodiscard]] QVariantList notifications() const { return notifications_; }
+    [[nodiscard]] QStringList clipboardEntries() const;
     [[nodiscard]] QString clockText() const;
     [[nodiscard]] QString dateText() const;
     [[nodiscard]] bool audioAvailable() const { return audioState_.available; }
@@ -71,6 +75,9 @@ public:
     Q_INVOKABLE void reloadApplications();
     Q_INVOKABLE void invokeTrayIcon(const QString& key, bool contextMenu = false);
     Q_INVOKABLE void dismissNotification(qulonglong id);
+    Q_INVOKABLE void activateClipboardEntry(int index);
+    Q_INVOKABLE void removeClipboardEntry(int index);
+    Q_INVOKABLE void clearClipboardHistory();
     Q_INVOKABLE void setVolume(int volume);
     Q_INVOKABLE void toggleMute();
     Q_INVOKABLE void suspend();
@@ -86,12 +93,14 @@ signals:
     void applicationsChanged();
     void trayIconsChanged();
     void notificationsChanged();
+    void clipboardChanged();
     void systemStatusChanged();
     void clockChanged();
 
 private:
     void refreshWindows();
     void refreshSystemStatus();
+    void captureClipboard();
     void addNotification(const TrayNotification& notification);
     static QVariantMap windowMap(const WindowSnapshot& window);
     static QVariantMap applicationMap(const ApplicationEntry& application);
@@ -104,6 +113,7 @@ private:
 
     WindowModel windowModel_;
     ApplicationModel applicationModel_;
+    ClipboardModel clipboardModel_;
     WindowsWindowSystem windowSystem_;
     WindowsApplications applications_;
     WindowsTraySystem traySystem_;
