@@ -13,14 +13,48 @@ $sources = @(
     'Source\Platform\Windows\WindowsApplications.cpp'
 )
 $output = 'build\KDEWindowsShell.exe'
+$objectDir = 'build\shell-obj'
 $msvcLibraries = @('user32.lib', 'gdi32.lib', 'shell32.lib', 'dwmapi.lib', 'ole32.lib', 'propsys.lib', 'uuid.lib')
+New-Item -ItemType Directory -Force -Path $objectDir | Out-Null
+
+function Resolve-MSVCLinker {
+    param([string]$Compiler)
+
+    $compilerDir = Split-Path -Parent $Compiler
+    $compilerName = [System.IO.Path]::GetFileName($Compiler)
+    $preferred = if ($compilerName -ieq 'clang-cl.exe') { @('lld-link.exe', 'link.exe') } else { @('link.exe', 'lld-link.exe') }
+
+    foreach ($name in $preferred) {
+        $sibling = Join-Path $compilerDir $name
+        if (Test-Path $sibling) { return $sibling }
+    }
+    foreach ($name in $preferred) {
+        $command = Get-Command $name -ErrorAction SilentlyContinue
+        if ($command) { return $command.Source }
+    }
+
+    throw "No linker found for $Compiler."
+}
 
 function Invoke-MSVC {
     param([string]$Compiler)
 
-    $compilerArgs = @('/nologo', '/std:c++20', '/O2', '/EHsc', '/DUNICODE', '/D_UNICODE', '/DNOMINMAX', '/I', 'Source') +
-                    $sources + @('/Fe' + $output, '/link', '/SUBSYSTEM:WINDOWS') + $msvcLibraries
-    & $Compiler @compilerArgs
+    $objects = @()
+    foreach ($source in $sources) {
+        $object = Join-Path $objectDir ([System.IO.Path]::GetFileNameWithoutExtension($source) + '.obj')
+        $compileArgs = @(
+            '/nologo', '/std:c++20', '/O2', '/EHsc',
+            '/DUNICODE', '/D_UNICODE', '/DNOMINMAX',
+            '/I', 'Source', '/c', $source, '/Fo' + $object
+        )
+        & $Compiler @compileArgs
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        $objects += $object
+    }
+
+    $linker = Resolve-MSVCLinker $Compiler
+    $linkArgs = @('/nologo', '/SUBSYSTEM:WINDOWS', '/OUT:' + $output) + $objects + $msvcLibraries
+    & $linker @linkArgs
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
@@ -42,11 +76,21 @@ if (Test-Path $vswhere) {
     if ($vs) {
         $devcmd = Join-Path $vs 'Common7\Tools\VsDevCmd.bat'
         $arch = if ($env:PROCESSOR_ARCHITECTURE -eq 'ARM64') { 'arm64' } else { 'x64' }
-        $quotedSources = ($sources | ForEach-Object { '"' + $_ + '"' }) -join ' '
+        $objects = @()
+        $compileCommands = @()
+
+        foreach ($source in $sources) {
+            $object = Join-Path $objectDir ([System.IO.Path]::GetFileNameWithoutExtension($source) + '.obj')
+            $objects += $object
+            $compileCommands += 'cl.exe /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /DNOMINMAX /I Source /c "' + $source + '" /Fo"' + $object + '"'
+        }
+
+        $quotedObjects = ($objects | ForEach-Object { '"' + $_ + '"' }) -join ' '
         $libraries = $msvcLibraries -join ' '
+        $linkCommand = 'link.exe /nologo /SUBSYSTEM:WINDOWS /OUT:"' + $output + '" ' + $quotedObjects + ' ' + $libraries
         $command = '"' + $devcmd + '" -no_logo -arch=' + $arch + ' -host_arch=' + $arch +
-                   ' && cl.exe /nologo /std:c++20 /O2 /EHsc /DUNICODE /D_UNICODE /DNOMINMAX /I Source ' +
-                   $quotedSources + ' /Fe' + $output + ' /link /SUBSYSTEM:WINDOWS ' + $libraries
+                   ' && ' + (($compileCommands + $linkCommand) -join ' && ')
+
         & cmd.exe /d /s /c $command
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         exit 0
