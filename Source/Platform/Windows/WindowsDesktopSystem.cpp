@@ -26,6 +26,16 @@ std::wstring knownFolder(REFKNOWNFOLDERID id)
     return result;
 }
 
+std::filesystem::path executableDirectory()
+{
+    std::wstring path(32768, L'\0');
+    const DWORD length = GetModuleFileNameW(nullptr, path.data(), static_cast<DWORD>(path.size()));
+    if (!length)
+        return {};
+    path.resize(length);
+    return std::filesystem::path(path).parent_path();
+}
+
 void appendFolder(std::vector<DesktopEntry>& entries, const std::wstring& folder)
 {
     if (folder.empty())
@@ -69,6 +79,22 @@ bool WindowsDesktopSystem::launch(const DesktopEntry& entry) const
 {
     if (entry.path.empty())
         return false;
+
+    if (entry.directory) {
+        const auto dolphin = executableDirectory() / L"dolphin.exe";
+        if (std::filesystem::exists(dolphin)) {
+            const std::wstring arguments = L"\"" + entry.path + L"\"";
+            const HINSTANCE result = ShellExecuteW(nullptr,
+                                                   L"open",
+                                                   dolphin.c_str(),
+                                                   arguments.c_str(),
+                                                   dolphin.parent_path().c_str(),
+                                                   SW_SHOWNORMAL);
+            if (reinterpret_cast<INT_PTR>(result) > 32)
+                return true;
+        }
+    }
+
     const HINSTANCE result = ShellExecuteW(nullptr, L"open", entry.path.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
     return reinterpret_cast<INT_PTR>(result) > 32;
 }
