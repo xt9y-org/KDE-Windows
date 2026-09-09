@@ -40,7 +40,6 @@ Window {
                 font.pixelSize: 18
                 font.bold: true
                 palette.buttonText: "#eff0f1"
-                palette.button: hovered ? "#384047" : "transparent"
                 onClicked: panel.launcherRequested()
                 background: Rectangle {
                     radius: 7
@@ -69,12 +68,10 @@ Window {
                     Repeater {
                         model: PlasmaBackend.windows
                         delegate: ToolButton {
+                            id: taskButton
                             required property var modelData
-                            width: Math.min(190, Math.max(72, implicitContentWidth + 28))
+                            width: Math.min(220, Math.max(76, taskContent.implicitWidth + 22))
                             height: 38
-                            text: modelData.title
-                            font.pixelSize: 13
-                            palette.buttonText: modelData.active ? "white" : "#eff0f1"
                             hoverEnabled: true
                             onClicked: {
                                 if (modelData.active)
@@ -82,9 +79,31 @@ Window {
                                 else
                                     PlasmaBackend.activateWindow(modelData.id)
                             }
+
+                            contentItem: RowLayout {
+                                id: taskContent
+                                spacing: 7
+
+                                Image {
+                                    Layout.preferredWidth: 22
+                                    Layout.preferredHeight: 22
+                                    source: "image://shell/window/" + modelData.id
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                }
+
+                                Label {
+                                    Layout.maximumWidth: 164
+                                    text: modelData.title
+                                    color: modelData.active ? "white" : "#eff0f1"
+                                    font.pixelSize: 13
+                                    elide: Text.ElideRight
+                                }
+                            }
+
                             background: Rectangle {
                                 radius: 7
-                                color: modelData.active ? "#4b5964" : parent.hovered ? "#343b41" : "transparent"
+                                color: modelData.active ? "#4b5964" : taskButton.hovered ? "#343b41" : "transparent"
                                 Rectangle {
                                     visible: modelData.active
                                     width: Math.min(parent.width - 20, 36)
@@ -130,6 +149,7 @@ Window {
                         model: PlasmaBackend.trayIcons
 
                         delegate: ToolButton {
+                            id: trayButton
                             required property var modelData
                             width: 32
                             height: 38
@@ -138,7 +158,7 @@ Window {
 
                             background: Rectangle {
                                 radius: 6
-                                color: parent.down ? "#4a555e" : parent.hovered ? "#384047" : "transparent"
+                                color: trayButton.down ? "#4a555e" : trayButton.hovered ? "#384047" : "transparent"
                             }
 
                             contentItem: Item {
