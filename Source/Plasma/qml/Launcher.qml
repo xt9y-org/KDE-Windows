@@ -115,6 +115,7 @@ Window {
                 ToolButton { text: "Lock"; onClicked: { PlasmaBackend.lockSession(); launcher.dismissed() } }
                 ToolButton { text: "Log Out"; onClicked: PlasmaBackend.logOut() }
                 Item { Layout.fillWidth: true }
+                ToolButton { text: "Sleep"; onClicked: PlasmaBackend.suspend() }
                 ToolButton { text: "Restart"; onClicked: PlasmaBackend.restart() }
                 ToolButton { text: "Shut Down"; onClicked: PlasmaBackend.shutDown() }
             }
