@@ -13,6 +13,8 @@ Window {
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint
     color: "#1b1e20"
 
+    signal runnerRequested()
+
     Rectangle {
         anchors.fill: parent
         color: "#1b1e20"
@@ -103,6 +105,6 @@ Window {
         id: desktopMenu
         MenuItem { text: "Refresh Desktop"; onTriggered: PlasmaBackend.reloadDesktop() }
         MenuSeparator {}
-        MenuItem { text: "Open Runner"; onTriggered: PlasmaBackend.runnerRequested() }
+        MenuItem { text: "Open Runner"; onTriggered: desktop.runnerRequested() }
     }
 }
