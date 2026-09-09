@@ -107,8 +107,19 @@ Window {
 
     Menu {
         id: desktopMenu
+        MenuItem {
+            text: "New Folder"
+            enabled: desktop.showIcons
+            onTriggered: PlasmaBackend.createDesktopFolder()
+        }
+        MenuItem {
+            text: "Open Desktop in Dolphin"
+            enabled: desktop.showIcons
+            onTriggered: PlasmaBackend.openDesktopFolder()
+        }
+        MenuSeparator {}
         MenuItem { text: "Refresh Desktop"; onTriggered: PlasmaBackend.reloadDesktop() }
-        MenuItem { text: "System Settings"; onTriggered: desktop.settingsRequested() }
+        MenuItem { text: "Configure Desktop and Wallpaper…"; onTriggered: desktop.settingsRequested() }
         MenuSeparator {}
         MenuItem { text: "Open Runner"; onTriggered: desktop.runnerRequested() }
     }
