@@ -1,33 +1,17 @@
 #include "WindowsBluetoothSystem.hpp"
+#include "Core/BluetoothAddress.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
 #include <bluetoothapis.h>
 
-#include <cwchar>
 #include <string>
 
 namespace kde_windows
 {
 namespace
 {
-std::wstring addressId(const BLUETOOTH_ADDRESS& address)
-{
-    wchar_t buffer[32]{};
-    const auto value = address.ullLong;
-    std::swprintf(buffer,
-                  sizeof(buffer) / sizeof(buffer[0]),
-                  L"%02X:%02X:%02X:%02X:%02X:%02X",
-                  static_cast<unsigned>((value >> 40) & 0xff),
-                  static_cast<unsigned>((value >> 32) & 0xff),
-                  static_cast<unsigned>((value >> 24) & 0xff),
-                  static_cast<unsigned>((value >> 16) & 0xff),
-                  static_cast<unsigned>((value >> 8) & 0xff),
-                  static_cast<unsigned>(value & 0xff));
-    return buffer;
-}
-
 void collectDevices(HANDLE radio, BluetoothState& state, bool inquiry)
 {
     BLUETOOTH_DEVICE_SEARCH_PARAMS search{};
@@ -49,7 +33,7 @@ void collectDevices(HANDLE radio, BluetoothState& state, bool inquiry)
 
     do {
         BluetoothDeviceSnapshot device;
-        device.id = addressId(info.Address);
+        device.id = formatBluetoothAddress(static_cast<std::uint64_t>(info.Address.ullLong));
         device.name = info.szName[0] ? info.szName : device.id;
         device.connected = info.fConnected != FALSE;
         device.paired = info.fAuthenticated != FALSE;
