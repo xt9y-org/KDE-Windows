@@ -56,6 +56,11 @@ Window {
                 color: "#495057"
             }
 
+            FavoriteStrip {
+                Layout.preferredWidth: implicitWidth
+                Layout.fillHeight: true
+            }
+
             Flickable {
                 id: taskArea
                 Layout.fillWidth: true
