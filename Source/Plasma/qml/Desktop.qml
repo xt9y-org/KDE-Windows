@@ -6,13 +6,15 @@ Window {
     id: desktop
     objectName: "plasmaDesktop"
     visible: true
-    x: Screen.virtualX
-    y: Screen.virtualY
-    width: Screen.width
-    height: Screen.height
+    x: displayData && displayData.x !== undefined ? displayData.x : Screen.virtualX
+    y: displayData && displayData.y !== undefined ? displayData.y : Screen.virtualY
+    width: displayData && displayData.width ? displayData.width : Screen.width
+    height: displayData && displayData.height ? displayData.height : Screen.height
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint
     color: "#1b1e20"
 
+    property var displayData: ({})
+    property bool showIcons: true
     signal runnerRequested()
 
     Rectangle {
@@ -32,12 +34,13 @@ Window {
 
     GridView {
         id: desktopGrid
+        visible: desktop.showIcons
         anchors.fill: parent
         anchors.margins: 12
         anchors.bottomMargin: 62
         cellWidth: 96
         cellHeight: 108
-        model: PlasmaBackend.desktopItems
+        model: desktop.showIcons ? PlasmaBackend.desktopItems : []
         flow: GridView.FlowTopToBottom
         layoutDirection: Qt.LeftToRight
         clip: true
