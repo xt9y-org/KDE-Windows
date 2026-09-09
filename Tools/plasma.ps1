@@ -89,6 +89,7 @@ Invoke-CraftPackage 'libs/qt/qtsvg'
 Invoke-CraftPackage 'kde/frameworks/tier1/breeze-icons'
 Invoke-CraftPackage 'kde/frameworks/tier3/qqc2-desktop-style'
 Invoke-CraftPackage 'kde/plasma/breeze'
+Invoke-CraftPackage 'kde/applications/dolphin'
 
 $cmake = Get-Command cmake.exe -ErrorAction SilentlyContinue
 if (-not $cmake) { $cmake = Get-Command cmake -ErrorAction SilentlyContinue }
@@ -126,8 +127,16 @@ $craftRoot = if ($env:CraftRoot) { $env:CraftRoot } else { Join-Path $craftPrefi
 Copy-DirectoryContents (Join-Path $craftRoot 'qml') (Join-Path $plasmaRoot 'qml')
 Copy-DirectoryContents (Join-Path $craftRoot 'plugins') (Join-Path $plasmaRoot 'plugins')
 Copy-DirectoryContents (Join-Path $craftRoot 'bin\data') (Join-Path $plasmaRoot 'bin\data')
+Copy-DirectoryContents (Join-Path $craftRoot 'share') (Join-Path $plasmaRoot 'share')
+Copy-DirectoryContents (Join-Path $craftRoot 'libexec') (Join-Path $plasmaRoot 'libexec')
 
 Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.dll' -File -ErrorAction SilentlyContinue |
     ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
+Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.exe' -File -ErrorAction SilentlyContinue |
+    ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
+
+if (-not (Test-Path (Join-Path $plasmaRoot 'bin\dolphin.exe'))) {
+    throw 'Dolphin was not staged into the Plasma runtime.'
+}
 
 Write-Host "Plasma Windows runtime: $plasmaExe"
