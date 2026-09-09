@@ -79,6 +79,7 @@ void WindowsShortcutSystem::stop()
     switching_ = false;
     winTapCandidate_ = false;
     winInjectedForCombo_ = false;
+    launcherRequest_.store(false);
 
     if (window_) {
         UnregisterHotKey(window_, kRunnerHotkeyId);
@@ -145,8 +146,10 @@ LRESULT CALLBACK WindowsShortcutSystem::keyboardProc(int code, WPARAM wparam, LP
 
         const bool launch = self->winTapCandidate_;
         self->winTapCandidate_ = false;
-        if (launch)
-            self->callback_(ShortcutAction::Launcher);
+        if (launch) {
+            self->launcherRequest_.store(true);
+            self->callback_(ShortcutAction::Runner);
+        }
         return 1;
     }
 
