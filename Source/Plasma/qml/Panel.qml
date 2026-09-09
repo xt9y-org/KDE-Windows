@@ -169,6 +169,8 @@ Window {
                 }
             }
 
+            StatusArea {}
+
             Rectangle {
                 Layout.preferredWidth: 1
                 Layout.preferredHeight: 26
