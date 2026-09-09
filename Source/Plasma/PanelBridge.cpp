@@ -1,5 +1,6 @@
 #include "PanelBridge.hpp"
 
+#include <QCoreApplication>
 #include <QWindow>
 
 #define WIN32_LEAN_AND_MEAN
@@ -14,10 +15,15 @@ namespace kde_windows
 PanelBridge::PanelBridge(QObject* parent)
     : QObject(parent)
 {
+    callbackMessage_ = RegisterWindowMessageW(L"KDEWindowsAppBarMessage");
+    if (QCoreApplication::instance())
+        QCoreApplication::instance()->installNativeEventFilter(this);
 }
 
 PanelBridge::~PanelBridge()
 {
+    if (QCoreApplication::instance())
+        QCoreApplication::instance()->removeNativeEventFilter(this);
     unregisterPanel();
 }
 
@@ -39,7 +45,7 @@ void PanelBridge::registerPanel(QObject* object)
         APPBARDATA data{};
         data.cbSize = sizeof(data);
         data.hWnd = hwnd;
-        data.uCallbackMessage = RegisterWindowMessageW(L"KDEWindowsAppBarMessage");
+        data.uCallbackMessage = callbackMessage_;
         registered_ = SHAppBarMessage(ABM_NEW, &data) != 0;
     }
 
@@ -51,6 +57,25 @@ void PanelBridge::registerPanel(QObject* object)
     connect(window_, &QWindow::widthChanged, this, &PanelBridge::updatePosition, Qt::UniqueConnection);
     connect(window_, &QWindow::heightChanged, this, &PanelBridge::updatePosition, Qt::UniqueConnection);
     updatePosition();
+}
+
+bool PanelBridge::nativeEventFilter(const QByteArray&, void* message, qintptr*)
+{
+    if (!message || !window_)
+        return false;
+
+    const auto* nativeMessage = static_cast<const MSG*>(message);
+    const HWND panel = reinterpret_cast<HWND>(window_->winId());
+    if (!panel || nativeMessage->hwnd != panel)
+        return false;
+
+    if (nativeMessage->message == callbackMessage_) {
+        if (nativeMessage->wParam == ABN_POSCHANGED || nativeMessage->wParam == ABN_STATECHANGE)
+            updatePosition();
+    } else if (nativeMessage->message == WM_DISPLAYCHANGE || nativeMessage->message == WM_SETTINGCHANGE) {
+        updatePosition();
+    }
+    return false;
 }
 
 void PanelBridge::updatePosition()
