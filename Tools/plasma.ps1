@@ -112,8 +112,12 @@ if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $plasmaExe = Join-Path $plasmaRoot 'bin\plasmashell.exe'
+$konsoleExe = Join-Path $plasmaRoot 'bin\konsole.exe'
 if (-not (Test-Path $plasmaExe)) {
     throw "Plasma shell build did not produce $plasmaExe"
+}
+if (-not (Test-Path $konsoleExe)) {
+    throw "Konsole frontend build did not produce $konsoleExe"
 }
 
 $deploy = Get-Command windeployqt.exe -ErrorAction SilentlyContinue
@@ -121,6 +125,8 @@ if (-not $deploy) { $deploy = Get-Command windeployqt -ErrorAction SilentlyConti
 if (-not $deploy) { throw 'windeployqt was not provided by the Craft Qt runtime.' }
 
 & $deploy.Source --release --qmldir (Join-Path $root 'Source\Plasma\qml') $plasmaExe
+if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+& $deploy.Source --release --qmldir (Join-Path $root 'Source\Terminal\qml') $konsoleExe
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 $craftRoot = if ($env:CraftRoot) { $env:CraftRoot } else { Join-Path $craftPrefix 'craft' }
@@ -133,10 +139,17 @@ Copy-DirectoryContents (Join-Path $craftRoot 'libexec') (Join-Path $plasmaRoot '
 Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.dll' -File -ErrorAction SilentlyContinue |
     ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
 Get-ChildItem (Join-Path $craftRoot 'bin') -Filter '*.exe' -File -ErrorAction SilentlyContinue |
-    ForEach-Object { Copy-Item -Force $_.FullName (Join-Path $plasmaRoot 'bin') }
+    ForEach-Object {
+        $destination = Join-Path $plasmaRoot 'bin' $_.Name
+        if (-not (Test-Path $destination)) { Copy-Item -Force $_.FullName $destination }
+    }
 
 if (-not (Test-Path (Join-Path $plasmaRoot 'bin\dolphin.exe'))) {
     throw 'Dolphin was not staged into the Plasma runtime.'
 }
+if (-not (Test-Path $konsoleExe)) {
+    throw 'Konsole frontend was overwritten or removed during runtime staging.'
+}
 
 Write-Host "Plasma Windows runtime: $plasmaExe"
+Write-Host "Konsole Windows frontend: $konsoleExe"
