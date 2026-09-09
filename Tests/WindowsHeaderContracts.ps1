@@ -29,3 +29,9 @@ if (-not $buildScript.Contains('/DNOMINMAX')) {
 if (-not $buildScript.Contains('-DNOMINMAX')) {
     throw 'The standalone Windows shell MinGW build must define NOMINMAX before windows.h is parsed.'
 }
+if ($buildScript.Contains("'/Fe:' + `$output")) {
+    throw 'The PowerShell MSVC invocation must not use /Fe: with an attached path; Windows PowerShell 5.1 can corrupt the following /link arguments.'
+}
+if ($buildScript.Contains("' /Fe:' + `$output")) {
+    throw 'The cmd.exe MSVC invocation must not use /Fe: with an attached path.'
+}
