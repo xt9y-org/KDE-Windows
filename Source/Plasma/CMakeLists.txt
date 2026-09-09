@@ -59,6 +59,13 @@ qt_add_qml_module(plasmashell
         qml/WindowSwitcher.qml
         qml/Overview.qml
         qml/Settings.qml
+        qml/AppearanceSettings.qml
+        qml/DisplaySettings.qml
+        qml/NetworkSettings.qml
+        qml/BluetoothSettings.qml
+        qml/SoundSettings.qml
+        qml/PowerSettings.qml
+        qml/VirtualDesktopSettings.qml
 )
 
 target_compile_definitions(plasmashell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
