@@ -11,17 +11,30 @@ Item {
     property bool launcherVisible: false
     property bool runnerVisible: false
     property bool clipboardVisible: false
+    property bool overviewVisible: false
+
+    function hidePopups() {
+        launcherVisible = false
+        runnerVisible = false
+        clipboardVisible = false
+    }
 
     function showRunner() {
-        launcherVisible = false
-        clipboardVisible = false
+        hidePopups()
+        overviewVisible = false
         runnerVisible = true
     }
 
     function showClipboard() {
         launcherVisible = false
         runnerVisible = false
+        overviewVisible = false
         clipboardVisible = !clipboardVisible
+    }
+
+    function showOverview() {
+        hidePopups()
+        overviewVisible = !overviewVisible
     }
 
     Desktop {
@@ -34,6 +47,7 @@ Item {
         onLauncherRequested: {
             root.runnerVisible = false
             root.clipboardVisible = false
+            root.overviewVisible = false
             root.launcherVisible = !root.launcherVisible
         }
         onClipboardRequested: root.showClipboard()
@@ -60,10 +74,19 @@ Item {
         onDismissed: root.clipboardVisible = false
     }
 
+    Overview {
+        id: overview
+        visible: root.overviewVisible
+        onDismissed: root.overviewVisible = false
+    }
+
+    WindowSwitcher {}
+
     Connections {
         target: PlasmaBackend
         function onRunnerRequested() { root.showRunner() }
         function onClipboardRequested() { root.showClipboard() }
+        function onOverviewRequested() { root.showOverview() }
     }
 
     Notifications {}
