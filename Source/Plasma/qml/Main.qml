@@ -48,14 +48,22 @@ Item {
         overviewVisible = !overviewVisible
     }
 
-    Desktop {
-        id: desktop
-        onRunnerRequested: root.showRunner()
-        Component.onCompleted: PlasmaBackend.registerDesktop(desktop)
+    Instantiator {
+        model: PlasmaBackend.displays
+
+        delegate: Desktop {
+            id: desktopWindow
+            required property var modelData
+            displayData: modelData
+            showIcons: modelData.primary
+            onRunnerRequested: root.showRunner()
+            Component.onCompleted: PlasmaBackend.registerDesktop(desktopWindow)
+        }
     }
 
     Panel {
         id: panel
+        displayData: PlasmaBackend.primaryDisplay
         onLauncherRequested: {
             root.runnerVisible = false
             root.clipboardVisible = false
