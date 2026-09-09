@@ -1,7 +1,13 @@
 #include "WindowsApplications.hpp"
 
+#ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
 #include <windows.h>
+#include <wtypes.h>
 #include <propkey.h>
 #include <propsys.h>
 #include <shellapi.h>
