@@ -47,6 +47,17 @@ Backend::Backend(QObject* parent)
                                       Qt::QueuedConnection);
         });
 
+    shortcutSystem_.start([this](ShortcutAction action) {
+        QMetaObject::invokeMethod(this,
+                                  [this, action] {
+                                      if (action == ShortcutAction::Runner)
+                                          emit runnerRequested();
+                                      else if (action == ShortcutAction::Clipboard)
+                                          emit clipboardRequested();
+                                  },
+                                  Qt::QueuedConnection);
+    });
+
     reloadApplications();
     refreshWindows();
     refreshSystemStatus();
@@ -71,6 +82,7 @@ Backend::Backend(QObject* parent)
 
 Backend::~Backend()
 {
+    shortcutSystem_.stop();
     traySystem_.stop();
     windowSystem_.stop();
     restoreWorkArea();
@@ -131,6 +143,36 @@ QVariantList Backend::searchApplications(const QString& query) const
     for (const auto* application : matches)
         result.push_back(applicationMap(*application));
     return result;
+}
+
+bool Backend::runCommand(const QString& command)
+{
+    const QString trimmed = command.trimmed();
+    if (trimmed.isEmpty())
+        return false;
+
+    std::wstring mutableCommand = trimmed.toStdWString();
+    STARTUPINFOW startup{};
+    startup.cb = sizeof(startup);
+    PROCESS_INFORMATION process{};
+    if (CreateProcessW(nullptr,
+                       mutableCommand.data(),
+                       nullptr,
+                       nullptr,
+                       FALSE,
+                       0,
+                       nullptr,
+                       nullptr,
+                       &startup,
+                       &process)) {
+        CloseHandle(process.hThread);
+        CloseHandle(process.hProcess);
+        return true;
+    }
+
+    const std::wstring target = trimmed.toStdWString();
+    const HINSTANCE result = ShellExecuteW(nullptr, L"open", target.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+    return reinterpret_cast<INT_PTR>(result) > 32;
 }
 
 void Backend::activateWindow(qulonglong id)
