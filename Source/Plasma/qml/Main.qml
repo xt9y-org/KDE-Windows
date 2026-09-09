@@ -23,6 +23,16 @@ Item {
         notificationCenterVisible = false
     }
 
+    function toggleLauncher() {
+        const next = !launcherVisible
+        runnerVisible = false
+        clipboardVisible = false
+        notificationCenterVisible = false
+        overviewVisible = false
+        settingsVisible = false
+        launcherVisible = next
+    }
+
     function showRunner() {
         hidePopups()
         overviewVisible = false
@@ -78,14 +88,7 @@ Item {
     Panel {
         id: panel
         displayData: PlasmaBackend.primaryDisplay
-        onLauncherRequested: {
-            root.runnerVisible = false
-            root.clipboardVisible = false
-            root.notificationCenterVisible = false
-            root.overviewVisible = false
-            root.settingsVisible = false
-            root.launcherVisible = !root.launcherVisible
-        }
+        onLauncherRequested: root.toggleLauncher()
         onClipboardRequested: root.showClipboard()
         onNotificationCenterRequested: root.showNotificationCenter()
         onSettingsRequested: function(page) { root.showSettings(page) }
@@ -136,7 +139,12 @@ Item {
 
     Connections {
         target: PlasmaBackend
-        function onRunnerRequested() { root.showRunner() }
+        function onRunnerRequested() {
+            if (PlasmaBackend.takeLauncherRequest())
+                root.toggleLauncher()
+            else
+                root.showRunner()
+        }
         function onClipboardRequested() { root.showClipboard() }
         function onOverviewRequested() { root.showOverview() }
     }
