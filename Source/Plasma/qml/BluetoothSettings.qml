@@ -6,13 +6,21 @@ ColumnLayout {
     id: root
     spacing: 14
     property var state: ({ "available": false, "discoverable": false, "radioName": "", "devices": [] })
+    property bool scanning: false
 
     function refresh() { state = PlasmaBackend.bluetoothState() }
+
+    function scan() {
+        scanning = true
+        state = PlasmaBackend.bluetoothScan()
+        scanning = false
+    }
+
     Component.onCompleted: refresh()
 
     Timer {
         interval: 3000
-        running: root.visible
+        running: root.visible && !root.scanning
         repeat: true
         onTriggered: root.refresh()
     }
@@ -30,9 +38,15 @@ ColumnLayout {
                 font.bold: true
             }
             Label {
-                text: root.state.available ? "Paired, remembered and connected devices" : "Bluetooth is unavailable on this system."
+                text: root.state.available ? "Paired, remembered, connected and discovered devices" : "Bluetooth is unavailable on this system."
                 color: "#aeb5ba"
             }
+        }
+        Button {
+            visible: root.state.available
+            text: root.scanning ? "Scanning…" : "Scan"
+            enabled: !root.scanning
+            onClicked: root.scan()
         }
         Switch {
             visible: root.state.available
@@ -56,7 +70,7 @@ ColumnLayout {
             delegate: Rectangle {
                 required property var modelData
                 width: ListView.view.width
-                height: 62
+                height: 66
                 radius: 8
                 color: "#2b3035"
                 RowLayout {
@@ -68,8 +82,24 @@ ColumnLayout {
                         Label { text: modelData.id; color: "#8f989f"; font.pixelSize: 11 }
                     }
                     Label {
-                        text: modelData.connected ? "Connected" : modelData.paired ? "Paired" : modelData.remembered ? "Remembered" : "Known"
+                        text: modelData.connected ? "Connected" : modelData.paired ? "Paired" : modelData.remembered ? "Remembered" : "Discovered"
                         color: modelData.connected ? "#3daee9" : "#b8bec3"
+                    }
+                    Button {
+                        visible: !modelData.paired && !modelData.remembered
+                        text: "Pair"
+                        onClicked: {
+                            PlasmaBackend.pairBluetooth(modelData.id)
+                            root.refresh()
+                        }
+                    }
+                    Button {
+                        visible: modelData.paired || modelData.remembered
+                        text: "Remove"
+                        onClicked: {
+                            PlasmaBackend.removeBluetooth(modelData.id)
+                            root.refresh()
+                        }
                     }
                 }
             }
@@ -77,8 +107,10 @@ ColumnLayout {
     }
 
     Label {
-        text: "Device inventory and discoverability use the documented Windows Bluetooth APIs."
+        text: "Pairing uses the Windows Bluetooth authentication wizard; removing a device clears its Windows pairing and cached services."
         color: "#808990"
         font.pixelSize: 11
+        Layout.fillWidth: true
+        wrapMode: Text.Wrap
     }
 }
