@@ -1,33 +1,21 @@
 #include "WindowsBluetoothSystem.hpp"
+#include "Core/BluetoothAddress.hpp"
 
 #define WIN32_LEAN_AND_MEAN
 #define NOMINMAX
 #include <windows.h>
 #include <bluetoothapis.h>
 
-#include <cwchar>
-
 namespace kde_windows
 {
 namespace
 {
-bool parseAddress(const std::wstring& text, BLUETOOTH_ADDRESS& address)
+bool addressFromText(const std::wstring& text, BLUETOOTH_ADDRESS& address)
 {
-    unsigned values[6]{};
-    if (std::swscanf(text.c_str(),
-                     L"%2x:%2x:%2x:%2x:%2x:%2x",
-                     &values[0], &values[1], &values[2],
-                     &values[3], &values[4], &values[5]) != 6) {
+    std::uint64_t value = 0;
+    if (!parseBluetoothAddress(text, value))
         return false;
-    }
-
-    ULONGLONG value = 0;
-    for (const unsigned part : values) {
-        if (part > 0xff)
-            return false;
-        value = (value << 8) | static_cast<ULONGLONG>(part);
-    }
-    address.ullLong = value;
+    address.ullLong = static_cast<ULONGLONG>(value);
     return true;
 }
 }
@@ -35,7 +23,7 @@ bool parseAddress(const std::wstring& text, BLUETOOTH_ADDRESS& address)
 bool WindowsBluetoothSystem::pair(const std::wstring& deviceId) const
 {
     BLUETOOTH_ADDRESS address{};
-    if (!parseAddress(deviceId, address))
+    if (!addressFromText(deviceId, address))
         return false;
 
     BLUETOOTH_DEVICE_INFO info{};
@@ -53,7 +41,7 @@ bool WindowsBluetoothSystem::pair(const std::wstring& deviceId) const
 bool WindowsBluetoothSystem::remove(const std::wstring& deviceId) const
 {
     BLUETOOTH_ADDRESS address{};
-    if (!parseAddress(deviceId, address))
+    if (!addressFromText(deviceId, address))
         return false;
     return BluetoothRemoveDevice(&address) == ERROR_SUCCESS;
 }
