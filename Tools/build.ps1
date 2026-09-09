@@ -41,20 +41,40 @@ function Invoke-MSVC {
 
     $objects = @()
     foreach ($source in $sources) {
-        $object = Join-Path $objectDir ([System.IO.Path]::GetFileNameWithoutExtension($source) + '.obj')
-        $compileArgs = @(
-            '/nologo', '/std:c++20', '/O2', '/EHsc',
-            '/DUNICODE', '/D_UNICODE', '/DNOMINMAX',
-            '/I', 'Source', '/c', $source, '/Fo' + $object
+        $base = [System.IO.Path]::GetFileNameWithoutExtension($source)
+        $object = Join-Path $objectDir ($base + '.obj')
+        $compileResponse = Join-Path $objectDir ($base + '.compile.rsp')
+        $compileOptions = @(
+            '/nologo',
+            '/std:c++20',
+            '/O2',
+            '/EHsc',
+            '/DUNICODE',
+            '/D_UNICODE',
+            '/DNOMINMAX',
+            '/I',
+            '"Source"',
+            '/c',
+            '"' + $source + '"',
+            '/Fo"' + $object + '"'
         )
-        & $Compiler @compileArgs
+        Set-Content -LiteralPath $compileResponse -Encoding ASCII -Value $compileOptions
+        $compileResponseArg = '@' + $compileResponse
+        & $Compiler $compileResponseArg
         if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
         $objects += $object
     }
 
     $linker = Resolve-MSVCLinker $Compiler
-    $linkArgs = @('/nologo', '/SUBSYSTEM:WINDOWS', '/OUT:' + $output) + $objects + $msvcLibraries
-    & $linker @linkArgs
+    $linkResponse = Join-Path $objectDir 'link.rsp'
+    $linkOptions = @(
+        '/nologo',
+        '/SUBSYSTEM:WINDOWS',
+        '/OUT:"' + $output + '"'
+    ) + ($objects | ForEach-Object { '"' + $_ + '"' }) + $msvcLibraries
+    Set-Content -LiteralPath $linkResponse -Encoding ASCII -Value $linkOptions
+    $linkResponseArg = '@' + $linkResponse
+    & $linker $linkResponseArg
     if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }
 
