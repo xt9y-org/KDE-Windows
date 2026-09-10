@@ -78,10 +78,16 @@ qt_add_executable(plasmashell
 
 target_include_directories(plasmashell PRIVATE ..)
 
+set_source_files_properties(qml/PlasmaTheme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(plasmashell
     URI org.kde.plasma.windows
     VERSION 1.0
     QML_FILES
+        qml/PlasmaTheme.qml
+        qml/PlasmaSurface.qml
+        qml/PlasmaIconButton.qml
+        qml/PlasmaListDelegate.qml
         qml/Main.qml
         qml/Desktop.qml
         qml/Panel.qml
