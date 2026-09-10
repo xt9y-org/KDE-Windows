@@ -4,13 +4,11 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: root
-    spacing: 14
+    spacing: 12
     property var state: ({ "enabled": false, "connected": false, "name": "", "networks": [] })
     property var pendingNetwork: null
 
-    function refresh() {
-        state = PlasmaBackend.wifiState()
-    }
+    function refresh() { state = PlasmaBackend.wifiState() }
 
     function connectNetwork(network) {
         if (network.known) {
@@ -53,11 +51,8 @@ ColumnLayout {
         onRejected: root.pendingNetwork = null
 
         contentItem: ColumnLayout {
-            spacing: 10
-            Label {
-                text: "Password"
-                color: "#eff0f1"
-            }
+            spacing: 8
+            Label { text: "Password"; color: PlasmaTheme.text }
             TextField {
                 id: passwordField
                 Layout.preferredWidth: 340
@@ -69,19 +64,31 @@ ColumnLayout {
         }
     }
 
-    Label { text: "Network"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
+    Label {
+        text: "Wi-Fi & Internet"
+        color: PlasmaTheme.text
+        font.family: PlasmaTheme.fontFamily
+        font.pixelSize: 20
+        font.bold: true
+    }
 
     RowLayout {
         Layout.fillWidth: true
         ColumnLayout {
             Layout.fillWidth: true
+            spacing: 1
             Label {
                 text: root.state.connected ? root.state.name : "Wi-Fi"
-                color: "#eff0f1"
-                font.pixelSize: 17
+                color: PlasmaTheme.text
+                font.family: PlasmaTheme.fontFamily
+                font.pixelSize: 14
                 font.bold: true
             }
-            Label { text: root.state.connected ? "Connected" : "Not connected"; color: "#aeb5ba" }
+            Label {
+                text: root.state.connected ? "Connected" : "Not connected"
+                color: root.state.connected ? PlasmaTheme.positive : PlasmaTheme.secondaryText
+                font.pixelSize: 10
+            }
         }
         Switch {
             text: "Wi-Fi"
@@ -101,51 +108,64 @@ ColumnLayout {
         }
     }
 
-    ScrollView {
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 1
+        color: PlasmaTheme.separator
+    }
+
+    Label { text: "Available Networks"; color: PlasmaTheme.secondaryText; font.pixelSize: 11 }
+
+    ListView {
         Layout.fillWidth: true
         Layout.fillHeight: true
         clip: true
+        model: root.state.networks || []
+        spacing: 4
 
-        ListView {
-            model: root.state.networks || []
-            spacing: 6
+        delegate: PlasmaSurface {
+            required property var modelData
+            width: ListView.view.width
+            height: 60
+            viewStyle: true
+            selected: modelData.connected
 
-            delegate: Rectangle {
-                required property var modelData
-                width: ListView.view.width
-                height: 66
-                radius: 8
-                color: "#2b3035"
-
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Label { text: modelData.name; color: "#eff0f1"; font.bold: true }
-                        Label {
-                            text: modelData.connected ? "Connected" :
-                                  modelData.known ? "Saved network" :
-                                  modelData.secure ? "Secured" : "Open"
-                            color: modelData.connected ? "#3daee9" : "#929ba2"
-                            font.pixelSize: 11
-                        }
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 8
+                Image {
+                    Layout.preferredWidth: 22
+                    Layout.preferredHeight: 22
+                    source: "image://shell/path/network-wireless"
+                    visible: false
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    Label { text: modelData.name; color: PlasmaTheme.text; font.bold: true; font.pixelSize: 12 }
+                    Label {
+                        text: modelData.connected ? "Connected" :
+                              modelData.known ? "Saved network" :
+                              modelData.secure ? "Secured" : "Open"
+                        color: modelData.connected ? PlasmaTheme.highlight : PlasmaTheme.secondaryText
+                        font.pixelSize: 10
                     }
-                    Label { text: modelData.signal + "%"; color: "#c4c9cd" }
-                    Button {
-                        visible: !modelData.connected
-                        text: modelData.known ? "Connect" : (modelData.secure ? "Password…" : "Connect")
-                        onClicked: root.connectNetwork(modelData)
-                    }
+                }
+                Label { text: modelData.signal + "%"; color: PlasmaTheme.secondaryText; font.pixelSize: 10 }
+                Button {
+                    visible: !modelData.connected
+                    text: modelData.known ? "Connect" : (modelData.secure ? "Password…" : "Connect")
+                    onClicked: root.connectNetwork(modelData)
                 }
             }
         }
     }
 
     Label {
-        text: "Open, WPA, WPA2 and WPA3-Personal networks can be saved and connected directly. Enterprise authentication remains managed by Windows WLAN policy."
-        color: "#808990"
-        font.pixelSize: 11
+        text: "Enterprise authentication remains managed by Windows WLAN policy."
+        color: PlasmaTheme.disabledText
+        font.pixelSize: 10
         Layout.fillWidth: true
         wrapMode: Text.Wrap
     }
