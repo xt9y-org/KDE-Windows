@@ -193,15 +193,20 @@ if (-not $ninja) {
 
 & $cmake.Source -S Source\Plasma -B $plasmaBuild -G Ninja `
     -DCMAKE_BUILD_TYPE=Release `
-    "-DKDE_WINDOWS_PLASMA_ROOT=$plasmaRoot"
+    "-DKDE_WINDOWS_PLASMA_ROOT=$plasmaRoot" `
+    "-DKDE_WINDOWS_SHELL_ROOT=$buildRoot"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
 & $cmake.Source --build $plasmaBuild --config Release
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+$shellExe = Join-Path $buildRoot 'KDEWindowsShell.exe'
 $plasmaBin = Join-Path $plasmaRoot 'bin'
 $plasmaExe = Join-Path $plasmaBin 'plasmashell.exe'
 $konsoleExe = Join-Path $plasmaBin 'konsole.exe'
+if (-not (Test-Path $shellExe)) {
+    throw "Fallback shell build did not produce $shellExe"
+}
 if (-not (Test-Path $plasmaExe)) {
     throw "Plasma shell build did not produce $plasmaExe"
 }
@@ -257,6 +262,7 @@ if (-not (Test-Path $konsoleExe)) {
     throw 'Konsole frontend was overwritten or removed during runtime staging.'
 }
 
+Write-Host "KDE-Windows fallback shell: $shellExe"
 Write-Host "Plasma Windows runtime: $plasmaExe"
 Write-Host "Konsole Windows frontend: $konsoleExe"
 Write-Host "Dolphin Windows runtime: $dolphinExe"
