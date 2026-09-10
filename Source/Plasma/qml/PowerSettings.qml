@@ -3,24 +3,68 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
-    spacing: 18
+    spacing: 12
 
-    Label { text: "Power"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
     Label {
-        text: PlasmaBackend.batteryAvailable
-              ? (PlasmaBackend.batteryPercent + "%" +
-                 (PlasmaBackend.charging ? " • Charging" : PlasmaBackend.onAc ? " • AC power" : ""))
-              : "No battery detected"
-        color: "#d8dcdf"
-        font.pixelSize: 18
+        text: "Power Management"
+        color: PlasmaTheme.text
+        font.family: PlasmaTheme.fontFamily
+        font.pixelSize: 20
+        font.bold: true
     }
-    ProgressBar {
-        visible: PlasmaBackend.batteryAvailable
+
+    PlasmaSurface {
         Layout.fillWidth: true
-        from: 0
-        to: 100
-        value: PlasmaBackend.batteryPercent
+        Layout.preferredHeight: PlasmaBackend.batteryAvailable ? 126 : 86
+        viewStyle: true
+
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+
+            RowLayout {
+                Layout.fillWidth: true
+                Rectangle {
+                    Layout.preferredWidth: 34
+                    Layout.preferredHeight: 34
+                    radius: 17
+                    color: PlasmaTheme.highlightSoft
+                    Label {
+                        anchors.centerIn: parent
+                        text: "⚡"
+                        color: PlasmaTheme.highlight
+                        font.pixelSize: 15
+                    }
+                }
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    Label {
+                        text: PlasmaBackend.batteryAvailable ? PlasmaBackend.batteryPercent + "%" : "No battery detected"
+                        color: PlasmaTheme.text
+                        font.bold: true
+                        font.pixelSize: 14
+                    }
+                    Label {
+                        visible: PlasmaBackend.batteryAvailable
+                        text: PlasmaBackend.charging ? "Charging" : PlasmaBackend.onAc ? "AC power" : "On battery"
+                        color: PlasmaTheme.secondaryText
+                        font.pixelSize: 10
+                    }
+                }
+                Button { text: "Sleep"; onClicked: PlasmaBackend.suspend() }
+            }
+
+            ProgressBar {
+                visible: PlasmaBackend.batteryAvailable
+                Layout.fillWidth: true
+                from: 0
+                to: 100
+                value: PlasmaBackend.batteryPercent
+            }
+        }
     }
-    Button { text: "Sleep"; onClicked: PlasmaBackend.suspend() }
+
     Item { Layout.fillHeight: true }
 }
