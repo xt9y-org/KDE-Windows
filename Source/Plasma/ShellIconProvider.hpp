@@ -10,5 +10,6 @@ public:
 
 private:
     static QImage iconImage(qulonglong windowId, int size);
+    static QImage thumbnailImage(qulonglong windowId, const QSize& requestedSize);
     static QImage pathImage(const QString& path, int size);
 };
