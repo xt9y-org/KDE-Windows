@@ -6,7 +6,9 @@ $panel = Get-Content (Join-Path $root 'Source\Plasma\qml\Panel.qml') -Raw
 $launcher = Get-Content (Join-Path $root 'Source\Plasma\qml\Launcher.qml') -Raw
 $settings = Get-Content (Join-Path $root 'Source\Plasma\qml\Settings.qml') -Raw
 $switcher = Get-Content (Join-Path $root 'Source\Plasma\qml\WindowSwitcher.qml') -Raw
+$overview = Get-Content (Join-Path $root 'Source\Plasma\qml\Overview.qml') -Raw
 $notifications = Get-Content (Join-Path $root 'Source\Plasma\qml\NotificationCenter.qml') -Raw
+$iconProvider = Get-Content (Join-Path $root 'Source\Plasma\ShellIconProvider.cpp') -Raw
 $themePath = Join-Path $root 'Source\Plasma\qml\PlasmaTheme.qml'
 
 if (-not (Test-Path $themePath)) {
@@ -30,8 +32,8 @@ if (-not $cmake.Contains('QT_QML_SINGLETON_TYPE')) {
 if (-not $panel.Contains('PlasmaTheme.panelMargin')) {
     throw 'Panel must use the Plasma floating-panel screen margin.'
 }
-if (-not $panel.Contains('PlasmaTheme.panelHeight')) {
-    throw 'Panel must use the shared Plasma panel height.'
+if (-not $panel.Contains('PlasmaTheme.panelHeight + PlasmaTheme.panelMargin')) {
+    throw 'Panel window must reserve its visible height plus the floating bottom margin.'
 }
 if (-not $panel.Contains('image://shell/window/')) {
     throw 'Task manager must render application icons.'
@@ -60,6 +62,17 @@ if (-not $settings.Contains('Search')) {
 }
 if (-not $switcher.Contains('GridView')) {
     throw 'Alt+Tab must use Plasma 6 Thumbnail Grid layout.'
+}
+foreach ($surface in @($switcher, $overview)) {
+    if (-not $surface.Contains('image://shell/thumbnail/')) {
+        throw 'Overview and Alt+Tab must request real window thumbnails from the shell image provider.'
+    }
+}
+if (-not $iconProvider.Contains('thumbnail/')) {
+    throw 'ShellIconProvider must expose a thumbnail image route.'
+}
+if (-not $iconProvider.Contains('PrintWindow')) {
+    throw 'Window thumbnails must capture window content rather than substituting application icons.'
 }
 if (-not $notifications.Contains('PlasmaSurface')) {
     throw 'Notification center must use the shared Plasma surface.'
