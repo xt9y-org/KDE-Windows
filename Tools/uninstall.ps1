@@ -7,7 +7,7 @@ if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administra
 }
 
 $installRoot = Join-Path $env:ProgramFiles 'KDE-Windows'
-$winlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
+$machineWinlogon = 'HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon'
 $state = 'HKLM:\SOFTWARE\KDE-Windows'
 $runOnce = 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce'
 
@@ -16,6 +16,8 @@ $previousAutoRestart = 1
 $installedUserSid = $null
 $previousUserPolicyShellExists = $false
 $previousUserPolicyShell = ''
+$previousUserWinlogonShellExists = $false
+$previousUserWinlogonShell = ''
 
 if (Test-Path $state) {
     $saved = Get-ItemProperty -Path $state
@@ -28,59 +30,70 @@ if (Test-Path $state) {
     if ($null -ne $saved.PreviousUserPolicyShell) {
         $previousUserPolicyShell = [string]$saved.PreviousUserPolicyShell
     }
+    if ($null -ne $saved.PreviousUserWinlogonShellExists) {
+        $previousUserWinlogonShellExists = [bool][int]$saved.PreviousUserWinlogonShellExists
+    }
+    if ($null -ne $saved.PreviousUserWinlogonShell) {
+        $previousUserWinlogonShell = [string]$saved.PreviousUserWinlogonShell
+    }
 }
 
 if ([string]::IsNullOrWhiteSpace($previousShell)) {
     $previousShell = 'explorer.exe'
 }
 
-$userPolicy = if ($installedUserSid) {
-    'Registry::HKEY_USERS\' + $installedUserSid + '\Software\Microsoft\Windows\CurrentVersion\Policies\System'
-} else {
-    $null
-}
+$userRoot = if ($installedUserSid) { 'Registry::HKEY_USERS\' + $installedUserSid } else { $null }
+$userPolicy = if ($userRoot) { $userRoot + '\Software\Microsoft\Windows\CurrentVersion\Policies\System' } else { $null }
+$userWinlogon = if ($userRoot) { $userRoot + '\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' } else { $null }
 
-# Restoration is the critical operation. Do not delete state/runtime until both
-# the machine shell and the per-user Custom User Interface policy are restored.
-Set-ItemProperty -Path $winlogon -Name Shell -Value $previousShell
-Set-ItemProperty -Path $winlogon -Name AutoRestartShell -Type DWord -Value $previousAutoRestart
-
-if ($userPolicy) {
-    if ($previousUserPolicyShellExists) {
-        New-Item -Path $userPolicy -Force | Out-Null
-        New-ItemProperty -Path $userPolicy -Name Shell -PropertyType String -Value $previousUserPolicyShell -Force | Out-Null
+function Restore-ShellValue([string]$path, [bool]$existed, [string]$value) {
+    if (-not $path) { return }
+    if ($existed) {
+        New-Item -Path $path -Force | Out-Null
+        New-ItemProperty -Path $path -Name Shell -PropertyType String -Value $value -Force | Out-Null
     }
-    elseif (Test-Path $userPolicy) {
-        Remove-ItemProperty -Path $userPolicy -Name Shell -ErrorAction SilentlyContinue
+    elseif (Test-Path $path) {
+        Remove-ItemProperty -Path $path -Name Shell -ErrorAction SilentlyContinue
     }
 }
 
-$restoredShell = [string](Get-ItemProperty -Path $winlogon -Name Shell -ErrorAction Stop).Shell
-$restoredAutoRestart = [int](Get-ItemProperty -Path $winlogon -Name AutoRestartShell -ErrorAction Stop).AutoRestartShell
+function Test-ShellValueRestored([string]$path, [bool]$existed, [string]$value) {
+    if (-not $path) { return $true }
+    if ($existed) {
+        try {
+            return [string](Get-ItemProperty -Path $path -Name Shell -ErrorAction Stop).Shell -eq $value
+        }
+        catch {
+            return $false
+        }
+    }
+
+    try {
+        Get-ItemProperty -Path $path -Name Shell -ErrorAction Stop | Out-Null
+        return $false
+    }
+    catch {
+        return $true
+    }
+}
+
+# Restoration is the critical operation. Do not delete state/runtime until every
+# shell-selection path is restored to its pre-install value.
+Set-ItemProperty -Path $machineWinlogon -Name Shell -Value $previousShell
+Set-ItemProperty -Path $machineWinlogon -Name AutoRestartShell -Type DWord -Value $previousAutoRestart
+Restore-ShellValue $userPolicy $previousUserPolicyShellExists $previousUserPolicyShell
+Restore-ShellValue $userWinlogon $previousUserWinlogonShellExists $previousUserWinlogonShell
+
+$restoredShell = [string](Get-ItemProperty -Path $machineWinlogon -Name Shell -ErrorAction Stop).Shell
+$restoredAutoRestart = [int](Get-ItemProperty -Path $machineWinlogon -Name AutoRestartShell -ErrorAction Stop).AutoRestartShell
 if ($restoredShell -ne $previousShell -or $restoredAutoRestart -ne $previousAutoRestart) {
     throw 'Windows shell restoration verification failed; KDE-Windows files were left untouched.'
 }
-
-if ($userPolicy) {
-    if ($previousUserPolicyShellExists) {
-        $restoredUserShell = [string](Get-ItemProperty -Path $userPolicy -Name Shell -ErrorAction Stop).Shell
-        if ($restoredUserShell -ne $previousUserPolicyShell) {
-            throw 'User shell policy restoration verification failed; KDE-Windows files were left untouched.'
-        }
-    }
-    else {
-        $userShellStillExists = $false
-        try {
-            Get-ItemProperty -Path $userPolicy -Name Shell -ErrorAction Stop | Out-Null
-            $userShellStillExists = $true
-        }
-        catch {
-            $userShellStillExists = $false
-        }
-        if ($userShellStillExists) {
-            throw 'User shell policy restoration verification failed; KDE-Windows files were left untouched.'
-        }
-    }
+if (-not (Test-ShellValueRestored $userPolicy $previousUserPolicyShellExists $previousUserPolicyShell)) {
+    throw 'User shell policy restoration verification failed; KDE-Windows files were left untouched.'
+}
+if (-not (Test-ShellValueRestored $userWinlogon $previousUserWinlogonShellExists $previousUserWinlogonShell)) {
+    throw 'User Winlogon shell restoration verification failed; KDE-Windows files were left untouched.'
 }
 
 if (Test-Path $state) {
