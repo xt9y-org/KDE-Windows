@@ -4,7 +4,7 @@ import QtQuick.Layouts
 
 RowLayout {
     id: root
-    spacing: 2
+    spacing: 0
     signal settingsRequested(int page)
 
     property var bluetooth: ({ "available": false, "devices": [] })
@@ -17,75 +17,63 @@ RowLayout {
         onTriggered: root.bluetooth = PlasmaBackend.bluetoothState()
     }
 
-    ToolButton {
+    PlasmaIconButton {
         id: networkButton
-        Layout.preferredWidth: 34
-        Layout.preferredHeight: 38
-        hoverEnabled: true
-        icon.name: PlasmaBackend.networkConnected ? (PlasmaBackend.wifi ? "network-wireless" : "network-wired") : "network-disconnect"
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 36
+        icon.name: PlasmaBackend.networkConnected
+                   ? (PlasmaBackend.wifi ? "network-wireless" : "network-wired")
+                   : "network-disconnect"
         onClicked: root.settingsRequested(2)
-        background: Rectangle {
-            radius: 6
-            color: networkButton.down ? "#4a555e" : networkButton.hovered ? "#384047" : "transparent"
-        }
         ToolTip.visible: hovered
-        ToolTip.delay: 400
+        ToolTip.delay: 500
         ToolTip.text: PlasmaBackend.networkConnected
-            ? PlasmaBackend.networkName + (PlasmaBackend.wifi ? "  " + PlasmaBackend.networkSignal + "%" : "")
-            : "Disconnected"
+                      ? PlasmaBackend.networkName + (PlasmaBackend.wifi ? "  " + PlasmaBackend.networkSignal + "%" : "")
+                      : "Disconnected"
     }
 
-    ToolButton {
+    PlasmaIconButton {
         id: bluetoothButton
         visible: root.bluetooth.available
-        Layout.preferredWidth: 34
-        Layout.preferredHeight: 38
-        hoverEnabled: true
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 36
         icon.name: "preferences-system-bluetooth"
         onClicked: root.settingsRequested(3)
-        background: Rectangle {
-            radius: 6
-            color: bluetoothButton.down ? "#4a555e" : bluetoothButton.hovered ? "#384047" : "transparent"
-        }
         ToolTip.visible: hovered
-        ToolTip.delay: 400
+        ToolTip.delay: 500
         ToolTip.text: root.bluetooth.radioName || "Bluetooth"
     }
 
-    ToolButton {
+    PlasmaIconButton {
         id: batteryButton
         visible: PlasmaBackend.batteryAvailable
-        Layout.preferredWidth: 58
-        Layout.preferredHeight: 38
-        hoverEnabled: true
-        text: (PlasmaBackend.charging ? "⚡ " : "") + PlasmaBackend.batteryPercent + "%"
-        font.pixelSize: 11
-        palette.buttonText: PlasmaBackend.batteryPercent >= 0 && PlasmaBackend.batteryPercent <= 15 && !PlasmaBackend.charging
-            ? "#da4453" : "#eff0f1"
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 36
+        icon.name: PlasmaBackend.charging ? "battery-100-charging" :
+                   PlasmaBackend.batteryPercent <= 15 ? "battery-caution" :
+                   PlasmaBackend.batteryPercent <= 40 ? "battery-040" :
+                   PlasmaBackend.batteryPercent <= 70 ? "battery-060" : "battery-100"
+        icon.color: PlasmaBackend.batteryPercent >= 0 && PlasmaBackend.batteryPercent <= 15 && !PlasmaBackend.charging
+                    ? PlasmaTheme.negative : PlasmaTheme.text
         onClicked: root.settingsRequested(5)
-        background: Rectangle {
-            radius: 6
-            color: batteryButton.down ? "#4a555e" : batteryButton.hovered ? "#384047" : "transparent"
-        }
         ToolTip.visible: hovered
-        ToolTip.delay: 400
-        ToolTip.text: PlasmaBackend.charging ? "Charging" : (PlasmaBackend.onAc ? "AC power" : "Battery")
+        ToolTip.delay: 500
+        ToolTip.text: PlasmaBackend.batteryPercent + "% — " +
+                      (PlasmaBackend.charging ? "Charging" : PlasmaBackend.onAc ? "AC power" : "Battery")
     }
 
-    ToolButton {
+    PlasmaIconButton {
         id: volumeButton
         visible: PlasmaBackend.audioAvailable
-        Layout.preferredWidth: 58
-        Layout.preferredHeight: 38
-        hoverEnabled: true
-        text: PlasmaBackend.muted ? "Mute" : PlasmaBackend.volume + "%"
-        font.pixelSize: 11
-        palette.buttonText: "#eff0f1"
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 36
+        icon.name: PlasmaBackend.muted || PlasmaBackend.volume === 0 ? "audio-volume-muted" :
+                   PlasmaBackend.volume < 35 ? "audio-volume-low" :
+                   PlasmaBackend.volume < 70 ? "audio-volume-medium" : "audio-volume-high"
         onClicked: volumePopup.open()
-        background: Rectangle {
-            radius: 6
-            color: volumeButton.down ? "#4a555e" : volumeButton.hovered ? "#384047" : "transparent"
-        }
+        ToolTip.visible: hovered
+        ToolTip.delay: 500
+        ToolTip.text: PlasmaBackend.muted ? "Audio Muted" : "Volume " + PlasmaBackend.volume + "%"
 
         TapHandler {
             acceptedButtons: Qt.RightButton
@@ -94,61 +82,80 @@ RowLayout {
 
         Popup {
             id: volumePopup
-            width: 250
-            height: 94
+            width: 330
+            height: 146
             x: volumeButton.width - width
             y: -height - 8
-            padding: 12
+            padding: 0
 
-            background: Rectangle {
-                radius: 10
-                color: "#f22b3035"
-                border.color: "#5a626a72"
-                border.width: 1
-            }
+            background: PlasmaSurface {}
 
-            RowLayout {
+            ColumnLayout {
                 anchors.fill: parent
+                anchors.margins: 12
                 spacing: 10
 
-                ToolButton {
-                    Layout.preferredWidth: 52
-                    text: PlasmaBackend.muted ? "Unmute" : "Mute"
-                    onClicked: PlasmaBackend.toggleMute()
-                }
-
-                Slider {
-                    id: volumeSlider
+                RowLayout {
                     Layout.fillWidth: true
-                    from: 0
-                    to: 100
-                    value: PlasmaBackend.volume
-                    live: true
-                    onMoved: PlasmaBackend.setVolume(Math.round(value))
+                    Label {
+                        text: "Audio Volume"
+                        color: PlasmaTheme.text
+                        font.family: PlasmaTheme.fontFamily
+                        font.pixelSize: 16
+                        Layout.fillWidth: true
+                    }
+                    PlasmaIconButton {
+                        icon.name: "configure"
+                        onClicked: {
+                            volumePopup.close()
+                            root.settingsRequested(4)
+                        }
+                        ToolTip.visible: hovered
+                        ToolTip.text: "Configure Audio Devices"
+                    }
                 }
 
-                Label {
-                    Layout.preferredWidth: 34
-                    text: PlasmaBackend.volume + "%"
-                    color: "#eff0f1"
-                    horizontalAlignment: Text.AlignRight
+                Rectangle {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 1
+                    color: PlasmaTheme.separator
+                }
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 10
+                    PlasmaIconButton {
+                        icon.name: PlasmaBackend.muted ? "audio-volume-muted" : "audio-volume-high"
+                        onClicked: PlasmaBackend.toggleMute()
+                    }
+                    Slider {
+                        id: volumeSlider
+                        Layout.fillWidth: true
+                        from: 0
+                        to: 100
+                        value: PlasmaBackend.volume
+                        live: true
+                        onMoved: PlasmaBackend.setVolume(Math.round(value))
+                    }
+                    Label {
+                        Layout.preferredWidth: 42
+                        text: PlasmaBackend.volume + "%"
+                        color: PlasmaTheme.text
+                        horizontalAlignment: Text.AlignRight
+                    }
                 }
             }
         }
     }
 
-    ToolButton {
+    PlasmaIconButton {
         id: settingsButton
-        Layout.preferredWidth: 34
-        Layout.preferredHeight: 38
-        hoverEnabled: true
+        Layout.preferredWidth: 30
+        Layout.preferredHeight: 36
         icon.name: "configure"
         onClicked: root.settingsRequested(0)
-        background: Rectangle {
-            radius: 6
-            color: settingsButton.down ? "#4a555e" : settingsButton.hovered ? "#384047" : "transparent"
-        }
         ToolTip.visible: hovered
+        ToolTip.delay: 500
         ToolTip.text: "System Settings"
     }
 }
