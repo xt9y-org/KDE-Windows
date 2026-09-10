@@ -6,59 +6,99 @@ import QtQuick.Window
 Window {
     id: switcher
     visible: PlasmaBackend.windowSwitcherVisible
-    width: Math.min(Screen.width - 80, Math.max(420, row.implicitWidth + 36))
-    height: 154
+    width: Math.min(Screen.width - 120, 860)
+    height: Math.min(Screen.height - 160, 440)
     x: Screen.virtualX + Math.round((Screen.width - width) / 2)
     y: Screen.virtualY + Math.round((Screen.height - height) / 2)
-    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
+    flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus
     color: "transparent"
 
-    Rectangle {
+    PlasmaSurface {
         anchors.fill: parent
-        radius: 14
-        color: "#f223272b"
-        border.color: "#5a596168"
-        border.width: 1
 
-        Row {
-            id: row
-            anchors.centerIn: parent
+        ColumnLayout {
+            anchors.fill: parent
+            anchors.margins: 12
             spacing: 8
 
-            Repeater {
-                model: PlasmaBackend.windows
+            Label {
+                text: "Windows"
+                color: PlasmaTheme.text
+                font.family: PlasmaTheme.fontFamily
+                font.pixelSize: 13
+                Layout.leftMargin: 4
+            }
 
-                delegate: Rectangle {
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: PlasmaTheme.separator
+            }
+
+            GridView {
+                id: grid
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                clip: true
+                model: PlasmaBackend.windows
+                cellWidth: 204
+                cellHeight: 158
+
+                delegate: Item {
+                    id: delegateRoot
                     required property var modelData
                     required property int index
-                    width: 132
-                    height: 112
-                    radius: 9
-                    color: index === PlasmaBackend.windowSwitcherIndex ? "#4b5964" : "#30363c"
-                    border.color: index === PlasmaBackend.windowSwitcherIndex ? "#3daee9" : "#434b52"
-                    border.width: index === PlasmaBackend.windowSwitcherIndex ? 2 : 1
+                    width: 196
+                    height: 150
 
-                    ColumnLayout {
+                    PlasmaSurface {
                         anchors.fill: parent
-                        anchors.margins: 9
-                        spacing: 6
+                        anchors.margins: 3
+                        viewStyle: true
+                        selected: index === PlasmaBackend.windowSwitcherIndex
+                        radius: 6
 
-                        Image {
-                            Layout.alignment: Qt.AlignHCenter
-                            Layout.preferredWidth: 46
-                            Layout.preferredHeight: 46
-                            source: "image://shell/window/" + modelData.id
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
-                        }
+                        ColumnLayout {
+                            anchors.fill: parent
+                            anchors.margins: 9
+                            spacing: 7
 
-                        Label {
-                            Layout.fillWidth: true
-                            text: modelData.title
-                            horizontalAlignment: Text.AlignHCenter
-                            color: "#eff0f1"
-                            elide: Text.ElideRight
-                            font.pixelSize: 12
+                            Rectangle {
+                                Layout.fillWidth: true
+                                Layout.fillHeight: true
+                                radius: PlasmaTheme.itemRadius
+                                color: PlasmaTheme.alternate
+                                border.color: PlasmaTheme.separator
+                                border.width: 1
+
+                                Image {
+                                    anchors.centerIn: parent
+                                    width: 56
+                                    height: 56
+                                    source: "image://shell/window/" + modelData.id
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                }
+                            }
+
+                            RowLayout {
+                                Layout.fillWidth: true
+                                spacing: 6
+                                Image {
+                                    Layout.preferredWidth: 18
+                                    Layout.preferredHeight: 18
+                                    source: "image://shell/window/" + modelData.id
+                                    fillMode: Image.PreserveAspectFit
+                                }
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.title
+                                    color: index === PlasmaBackend.windowSwitcherIndex ? PlasmaTheme.highlight : PlasmaTheme.text
+                                    font.family: PlasmaTheme.fontFamily
+                                    font.pixelSize: 11
+                                    elide: Text.ElideRight
+                                }
+                            }
                         }
                     }
                 }
