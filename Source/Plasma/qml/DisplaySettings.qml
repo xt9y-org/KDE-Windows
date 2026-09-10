@@ -3,14 +3,20 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
-    spacing: 14
+    spacing: 12
 
-    Label { text: "Displays"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
     Label {
-        text: "Resolution, refresh rate, primary display and supported monitor brightness are controlled natively."
-        color: "#aeb5ba"
-        wrapMode: Text.Wrap
-        Layout.fillWidth: true
+        text: "Display & Monitor"
+        color: PlasmaTheme.text
+        font.family: PlasmaTheme.fontFamily
+        font.pixelSize: 20
+        font.bold: true
+    }
+    Label {
+        text: "Display Configuration"
+        color: PlasmaTheme.secondaryText
+        font.family: PlasmaTheme.fontFamily
+        font.pixelSize: 11
     }
 
     ScrollView {
@@ -20,12 +26,12 @@ ColumnLayout {
 
         ColumnLayout {
             width: parent.width
-            spacing: 10
+            spacing: 8
 
             Repeater {
                 model: PlasmaBackend.displays
 
-                delegate: Rectangle {
+                delegate: PlasmaSurface {
                     id: displayCard
                     required property var modelData
                     property var brightnessInfo: PlasmaBackend.displayBrightness(modelData.id)
@@ -34,10 +40,9 @@ ColumnLayout {
                     property int selectedMode: -1
 
                     Layout.fillWidth: true
-                    Layout.preferredHeight: brightnessInfo.available ? 202 : 162
-                    radius: 10
-                    color: "#2b3035"
-                    border.color: modelData.primary ? "#3daee9" : "#434b52"
+                    Layout.preferredHeight: brightnessInfo.available ? 188 : 146
+                    viewStyle: true
+                    selected: modelData.primary
 
                     function selectCurrentMode() {
                         selectedMode = -1
@@ -56,35 +61,59 @@ ColumnLayout {
 
                     ColumnLayout {
                         anchors.fill: parent
-                        anchors.margins: 14
+                        anchors.margins: 12
                         spacing: 8
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Label {
+                            Rectangle {
+                                Layout.preferredWidth: 42
+                                Layout.preferredHeight: 28
+                                radius: 3
+                                color: PlasmaTheme.alternate
+                                border.color: modelData.primary ? PlasmaTheme.highlight : PlasmaTheme.frame
+                                border.width: modelData.primary ? 2 : 1
+                                Label {
+                                    anchors.centerIn: parent
+                                    text: "1"
+                                    color: PlasmaTheme.text
+                                    font.pixelSize: 11
+                                }
+                            }
+                            ColumnLayout {
                                 Layout.fillWidth: true
-                                text: modelData.name + (modelData.primary ? "  • Primary" : "")
-                                color: "#eff0f1"
-                                font.bold: true
-                                font.pixelSize: 15
+                                spacing: 1
+                                Label {
+                                    Layout.fillWidth: true
+                                    text: modelData.name
+                                    color: PlasmaTheme.text
+                                    font.family: PlasmaTheme.fontFamily
+                                    font.bold: true
+                                    font.pixelSize: 13
+                                }
+                                Label {
+                                    text: modelData.primary ? "Primary display" : "Display"
+                                    color: modelData.primary ? PlasmaTheme.highlight : PlasmaTheme.secondaryText
+                                    font.pixelSize: 10
+                                }
                             }
                             Label {
                                 text: displayCard.currentMode.width + "×" + displayCard.currentMode.height +
                                       (displayCard.currentMode.refreshRate > 0 ? " @ " + displayCard.currentMode.refreshRate + " Hz" : "")
-                                color: "#aeb5ba"
+                                color: PlasmaTheme.secondaryText
+                                font.pixelSize: 10
                             }
                         }
 
-                        Label {
-                            text: "Position " + modelData.x + ", " + modelData.y +
-                                  "   •   Work area " + modelData.workWidth + "×" + modelData.workHeight
-                            color: "#929ba2"
-                            font.pixelSize: 11
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.preferredHeight: 1
+                            color: PlasmaTheme.separator
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Label { text: "Mode"; color: "#d8dcdf"; Layout.preferredWidth: 72 }
+                            Label { text: "Resolution & refresh rate:"; color: PlasmaTheme.text; Layout.preferredWidth: 145 }
                             ComboBox {
                                 id: modeBox
                                 Layout.fillWidth: true
@@ -113,7 +142,7 @@ ColumnLayout {
                         RowLayout {
                             visible: displayCard.brightnessInfo.available
                             Layout.fillWidth: true
-                            Label { text: "Brightness"; color: "#d8dcdf"; Layout.preferredWidth: 72 }
+                            Label { text: "Brightness:"; color: PlasmaTheme.text; Layout.preferredWidth: 145 }
                             Slider {
                                 id: brightnessSlider
                                 Layout.fillWidth: true
@@ -124,8 +153,8 @@ ColumnLayout {
                             }
                             Label {
                                 text: Math.round(brightnessSlider.value) + "%"
-                                color: "#d8dcdf"
-                                Layout.preferredWidth: 48
+                                color: PlasmaTheme.text
+                                Layout.preferredWidth: 44
                             }
                         }
                     }
