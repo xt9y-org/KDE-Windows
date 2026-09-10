@@ -6,9 +6,36 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 set(KDE_WINDOWS_PLASMA_ROOT "${CMAKE_BINARY_DIR}/Plasma" CACHE PATH "Plasma runtime output root")
+set(KDE_WINDOWS_SHELL_ROOT "${CMAKE_BINARY_DIR}/.." CACHE PATH "Fallback shell output root")
 
 find_package(Qt6 6.8 REQUIRED COMPONENTS Core Gui Qml Quick QuickControls2)
 qt_standard_project_setup(REQUIRES 6.8)
+
+add_executable(KDEWindowsShell WIN32
+    ../Shell.cpp
+    ../Platform/Windows/WindowsWindowSystem.cpp
+    ../Platform/Windows/WindowsWindowSystem.hpp
+    ../Platform/Windows/WindowsApplications.cpp
+    ../Platform/Windows/WindowsApplications.hpp
+)
+
+target_include_directories(KDEWindowsShell PRIVATE ..)
+target_compile_definitions(KDEWindowsShell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)
+target_link_libraries(KDEWindowsShell PRIVATE
+    user32
+    gdi32
+    shell32
+    dwmapi
+    ole32
+    propsys
+    uuid
+    advapi32
+)
+set_target_properties(KDEWindowsShell PROPERTIES
+    RUNTIME_OUTPUT_DIRECTORY "${KDE_WINDOWS_SHELL_ROOT}"
+    RUNTIME_OUTPUT_DIRECTORY_RELEASE "${KDE_WINDOWS_SHELL_ROOT}"
+    RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${KDE_WINDOWS_SHELL_ROOT}"
+)
 
 qt_add_executable(plasmashell
     main.cpp
