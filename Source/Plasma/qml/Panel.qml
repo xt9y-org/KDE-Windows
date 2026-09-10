@@ -7,11 +7,16 @@ Window {
     id: panel
     objectName: "plasmaPanel"
     visible: true
-    x: displayData && displayData.x !== undefined ? displayData.x : Screen.virtualX
-    y: (displayData && displayData.y !== undefined ? displayData.y : Screen.virtualY) +
-       (displayData && displayData.height ? displayData.height : Screen.height) - height
-    width: displayData && displayData.width ? displayData.width : Screen.width
-    height: 48
+
+    readonly property int screenX: displayData && displayData.x !== undefined ? displayData.x : Screen.virtualX
+    readonly property int screenY: displayData && displayData.y !== undefined ? displayData.y : Screen.virtualY
+    readonly property int screenWidth: displayData && displayData.width ? displayData.width : Screen.width
+    readonly property int screenHeight: displayData && displayData.height ? displayData.height : Screen.height
+
+    x: screenX + PlasmaTheme.panelMargin
+    y: screenY + screenHeight - height - PlasmaTheme.panelMargin
+    width: Math.max(1, screenWidth - PlasmaTheme.panelMargin * 2)
+    height: PlasmaTheme.panelHeight
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
 
@@ -22,38 +27,35 @@ Window {
     signal calendarRequested()
     signal settingsRequested(int page)
 
-    Rectangle {
+    PlasmaSurface {
         anchors.fill: parent
-        color: "#e6262a2e"
-        border.color: "#443f444a"
-        border.width: 1
+        radius: 6
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 6
-            anchors.rightMargin: 8
-            spacing: 5
+            anchors.leftMargin: 3
+            anchors.rightMargin: 3
+            anchors.topMargin: 3
+            anchors.bottomMargin: 3
+            spacing: 1
 
-            ToolButton {
+            PlasmaIconButton {
                 id: launcherButton
-                Layout.preferredWidth: 42
-                Layout.preferredHeight: 38
+                Layout.preferredWidth: 38
+                Layout.fillHeight: true
                 icon.name: "start-here-kde"
-                text: "K"
-                font.pixelSize: 18
-                font.bold: true
-                palette.buttonText: "#eff0f1"
+                icon.width: 24
+                icon.height: 24
                 onClicked: panel.launcherRequested()
-                background: Rectangle {
-                    radius: 7
-                    color: launcherButton.down ? "#4a555e" : launcherButton.hovered ? "#384047" : "transparent"
-                }
+                ToolTip.visible: hovered
+                ToolTip.delay: 500
+                ToolTip.text: "Application Launcher"
             }
 
             Rectangle {
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 26
-                color: "#495057"
+                Layout.preferredHeight: 25
+                color: PlasmaTheme.separator
             }
 
             FavoriteStrip {
@@ -67,20 +69,23 @@ Window {
                 Layout.fillHeight: true
                 contentWidth: taskRow.implicitWidth
                 clip: true
+                boundsBehavior: Flickable.StopAtBounds
 
                 Row {
                     id: taskRow
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: 4
+                    spacing: 1
 
                     Repeater {
                         model: PlasmaBackend.windows
+
                         delegate: ToolButton {
                             id: taskButton
                             required property var modelData
-                            width: Math.min(220, Math.max(76, taskContent.implicitWidth + 22))
+                            width: 40
                             height: 38
                             hoverEnabled: true
+                            display: AbstractButton.IconOnly
                             onClicked: {
                                 if (modelData.active)
                                     PlasmaBackend.minimizeWindow(modelData.id)
@@ -88,41 +93,38 @@ Window {
                                     PlasmaBackend.activateWindow(modelData.id)
                             }
 
-                            contentItem: RowLayout {
-                                id: taskContent
-                                spacing: 7
-
+                            contentItem: Item {
                                 Image {
-                                    Layout.preferredWidth: 22
-                                    Layout.preferredHeight: 22
+                                    anchors.centerIn: parent
+                                    width: 26
+                                    height: 26
                                     source: "image://shell/window/" + modelData.id
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
                                 }
-
-                                Label {
-                                    Layout.maximumWidth: 164
-                                    text: modelData.title
-                                    color: modelData.active ? "white" : "#eff0f1"
-                                    font.pixelSize: 13
-                                    elide: Text.ElideRight
-                                }
                             }
 
                             background: Rectangle {
-                                radius: 7
-                                color: modelData.active ? "#4b5964" : taskButton.hovered ? "#343b41" : "transparent"
+                                radius: PlasmaTheme.itemRadius
+                                color: taskButton.down ? PlasmaTheme.buttonPressed :
+                                       modelData.active ? PlasmaTheme.highlightSoft :
+                                       taskButton.hovered ? PlasmaTheme.buttonHover : "transparent"
+
                                 Rectangle {
                                     visible: modelData.active
-                                    width: Math.min(parent.width - 20, 36)
+                                    width: 20
                                     height: 2
                                     radius: 1
-                                    color: "#3daee9"
                                     anchors.horizontalCenter: parent.horizontalCenter
                                     anchors.bottom: parent.bottom
-                                    anchors.bottomMargin: 2
+                                    anchors.bottomMargin: 1
+                                    color: PlasmaTheme.highlight
                                 }
                             }
+
+                            ToolTip.visible: hovered
+                            ToolTip.delay: 500
+                            ToolTip.text: modelData.title
 
                             TapHandler {
                                 acceptedButtons: Qt.RightButton
@@ -132,7 +134,10 @@ Window {
                             Menu {
                                 id: taskMenu
                                 MenuItem { text: "Minimize"; onTriggered: PlasmaBackend.minimizeWindow(modelData.id) }
-                                MenuItem { text: modelData.maximized ? "Restore" : "Maximize"; onTriggered: PlasmaBackend.toggleMaximizeWindow(modelData.id) }
+                                MenuItem {
+                                    text: modelData.maximized ? "Restore" : "Maximize"
+                                    onTriggered: PlasmaBackend.toggleMaximizeWindow(modelData.id)
+                                }
                                 MenuSeparator {}
                                 MenuItem { text: "Close"; onTriggered: PlasmaBackend.closeWindow(modelData.id) }
                             }
@@ -141,105 +146,81 @@ Window {
                 }
             }
 
-            Flickable {
-                id: trayArea
-                Layout.preferredWidth: Math.min(220, trayRow.implicitWidth)
-                Layout.fillHeight: true
-                contentWidth: trayRow.implicitWidth
-                clip: true
+            Row {
+                id: trayRow
+                Layout.alignment: Qt.AlignVCenter
+                spacing: 0
 
-                Row {
-                    id: trayRow
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 2
+                Repeater {
+                    model: PlasmaBackend.trayIcons
 
-                    Repeater {
-                        model: PlasmaBackend.trayIcons
+                    delegate: PlasmaIconButton {
+                        id: trayButton
+                        required property var modelData
+                        width: 30
+                        height: 36
+                        onClicked: PlasmaBackend.invokeTrayIcon(modelData.key, false)
 
-                        delegate: ToolButton {
-                            id: trayButton
-                            required property var modelData
-                            width: 32
-                            height: 38
-                            hoverEnabled: true
-                            onClicked: PlasmaBackend.invokeTrayIcon(modelData.key, false)
-
-                            background: Rectangle {
-                                radius: 6
-                                color: trayButton.down ? "#4a555e" : trayButton.hovered ? "#384047" : "transparent"
+                        contentItem: Item {
+                            Image {
+                                anchors.centerIn: parent
+                                width: 20
+                                height: 20
+                                source: modelData.icon
+                                visible: source.toString().length > 0
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
                             }
-
-                            contentItem: Item {
-                                Image {
-                                    anchors.centerIn: parent
-                                    width: 22
-                                    height: 22
-                                    source: modelData.icon
-                                    visible: source.toString().length > 0
-                                    fillMode: Image.PreserveAspectFit
-                                    smooth: true
-                                }
-                                Label {
-                                    anchors.centerIn: parent
-                                    visible: modelData.icon.length === 0
-                                    text: "•"
-                                    color: "#d9dcde"
-                                    font.pixelSize: 18
-                                }
+                            Label {
+                                anchors.centerIn: parent
+                                visible: modelData.icon.length === 0
+                                text: "•"
+                                color: PlasmaTheme.text
+                                font.pixelSize: 16
                             }
+                        }
 
-                            ToolTip.visible: hovered && modelData.tooltip.length > 0
-                            ToolTip.text: modelData.tooltip
-                            ToolTip.delay: 500
+                        ToolTip.visible: hovered && modelData.tooltip.length > 0
+                        ToolTip.text: modelData.tooltip
+                        ToolTip.delay: 500
 
-                            TapHandler {
-                                acceptedButtons: Qt.RightButton
-                                onTapped: PlasmaBackend.invokeTrayIcon(modelData.key, true)
-                            }
+                        TapHandler {
+                            acceptedButtons: Qt.RightButton
+                            onTapped: PlasmaBackend.invokeTrayIcon(modelData.key, true)
                         }
                     }
                 }
             }
 
-            ToolButton {
+            PlasmaIconButton {
                 id: clipboardButton
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 38
-                icon.name: "edit-copy"
-                hoverEnabled: true
+                Layout.preferredWidth: 30
+                Layout.fillHeight: true
+                icon.name: "edit-paste"
                 onClicked: panel.clipboardRequested()
                 ToolTip.visible: hovered
                 ToolTip.text: "Clipboard"
-                background: Rectangle {
-                    radius: 6
-                    color: clipboardButton.down ? "#4a555e" : clipboardButton.hovered ? "#384047" : "transparent"
-                }
             }
 
-            ToolButton {
+            PlasmaIconButton {
                 id: notificationsButton
-                Layout.preferredWidth: 34
-                Layout.preferredHeight: 38
-                icon.name: "notifications"
-                hoverEnabled: true
+                Layout.preferredWidth: 30
+                Layout.fillHeight: true
+                icon.name: PlasmaBackend.notificationHistory.length > 0 ? "notifications" : "notifications-disabled"
                 onClicked: panel.notificationCenterRequested()
                 ToolTip.visible: hovered
                 ToolTip.text: "Notifications"
-                background: Rectangle {
-                    radius: 6
-                    color: notificationsButton.down ? "#4a555e" : notificationsButton.hovered ? "#384047" : "transparent"
-                }
 
                 Rectangle {
                     visible: PlasmaBackend.notificationHistory.length > 0
-                    width: 8
-                    height: 8
-                    radius: 4
-                    color: "#3daee9"
+                    width: 6
+                    height: 6
+                    radius: 3
                     anchors.right: parent.right
                     anchors.top: parent.top
-                    anchors.rightMargin: 4
-                    anchors.topMargin: 4
+                    anchors.rightMargin: 3
+                    anchors.topMargin: 3
+                    color: PlasmaTheme.highlight
                 }
             }
 
@@ -249,37 +230,45 @@ Window {
 
             Rectangle {
                 Layout.preferredWidth: 1
-                Layout.preferredHeight: 26
-                color: "#495057"
+                Layout.preferredHeight: 25
+                color: PlasmaTheme.separator
             }
 
             ToolButton {
                 id: clockButton
-                Layout.preferredWidth: 108
+                Layout.preferredWidth: 94
                 Layout.fillHeight: true
                 hoverEnabled: true
                 onClicked: panel.calendarRequested()
-                ToolTip.visible: hovered
-                ToolTip.text: Qt.formatDate(new Date(), "dddd, d MMMM yyyy")
+                palette.buttonText: PlasmaTheme.text
+
                 background: Rectangle {
-                    radius: 6
-                    color: clockButton.down ? "#4a555e" : clockButton.hovered ? "#343b41" : "transparent"
+                    radius: PlasmaTheme.itemRadius
+                    color: clockButton.down ? PlasmaTheme.buttonPressed : clockButton.hovered ? PlasmaTheme.buttonHover : "transparent"
                 }
-                contentItem: ColumnLayout {
+
+                contentItem: Column {
+                    anchors.centerIn: parent
                     spacing: -2
                     Label {
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignBottom
+                        anchors.horizontalCenter: parent.horizontalCenter
                         text: PlasmaBackend.clockText
-                        color: "#eff0f1"
-                        font.pixelSize: 13
+                        color: PlasmaTheme.text
+                        font.family: PlasmaTheme.fontFamily
+                        font.pixelSize: 12
                     }
                     Label {
-                        Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                        anchors.horizontalCenter: parent.horizontalCenter
                         text: PlasmaBackend.dateText
-                        color: "#b7bdc2"
-                        font.pixelSize: 10
+                        color: PlasmaTheme.secondaryText
+                        font.family: PlasmaTheme.fontFamily
+                        font.pixelSize: 9
                     }
                 }
+
+                ToolTip.visible: hovered
+                ToolTip.delay: 500
+                ToolTip.text: Qt.formatDate(new Date(), "dddd, d MMMM yyyy")
             }
         }
     }
