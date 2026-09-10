@@ -5,6 +5,8 @@ $trayHeader = Get-Content (Join-Path $root 'Source\Platform\Windows\WindowsTrayS
 $shortcutHeader = Get-Content (Join-Path $root 'Source\Platform\Windows\WindowsShortcutSystem.hpp') -Raw
 $iconSource = Get-Content (Join-Path $root 'Source\Plasma\ShellIconProvider.cpp') -Raw
 $buildScript = Get-Content (Join-Path $root 'Tools\build.ps1') -Raw
+$plasmaScript = Get-Content (Join-Path $root 'Tools\plasma.ps1') -Raw
+$cmake = Get-Content (Join-Path $root 'Source\Plasma\CMakeLists.txt') -Raw
 
 if (-not $trayHeader.Contains('#include <shellapi.h>')) {
     throw 'WindowsTraySystem.hpp must include shellapi.h because it exposes NOTIFYICONDATAW in its interface.'
@@ -23,33 +25,33 @@ foreach ($source in @(
     }
 }
 
-if (-not $buildScript.Contains('/DNOMINMAX')) {
-    throw 'The standalone Windows shell MSVC/clang-cl build must define NOMINMAX before windows.h is parsed.'
+if (-not $cmake.Contains('add_executable(KDEWindowsShell')) {
+    throw 'The fallback Windows shell must be built by CMake with the Plasma host build.'
 }
-if (-not $buildScript.Contains('-DNOMINMAX')) {
-    throw 'The standalone Windows shell MinGW build must define NOMINMAX before windows.h is parsed.'
+if (-not $cmake.Contains('../Shell.cpp')) {
+    throw 'The CMake fallback shell target must include Source/Shell.cpp.'
 }
-if ($buildScript.Contains('/Fe')) {
-    throw 'The standalone MSVC shell build must not use cl.exe /Fe; compile and link must be separate.'
+if (-not $cmake.Contains('target_compile_definitions(KDEWindowsShell PRIVATE UNICODE _UNICODE WIN32_LEAN_AND_MEAN NOMINMAX)')) {
+    throw 'The fallback shell CMake target must define the Windows compile contract.'
 }
-if (-not $buildScript.Contains('/c')) {
-    throw 'The standalone MSVC shell build must compile sources with /c.'
+if (-not $cmake.Contains('advapi32')) {
+    throw 'The fallback shell must link Advapi32 for token/privilege APIs.'
 }
-if (-not $buildScript.Contains('link.exe')) {
-    throw 'The standalone MSVC shell build must invoke link.exe explicitly.'
+if (-not $cmake.Contains('RUNTIME_OUTPUT_DIRECTORY "${KDE_WINDOWS_SHELL_ROOT}"')) {
+    throw 'The fallback shell CMake target must emit directly into the installer build root.'
 }
-if ($buildScript.Contains('.compile.rsp') -or $buildScript.Contains('link.rsp')) {
-    throw 'Do not route MSVC shell options through generated response files; use cmd.exe native parsing.'
+if (-not $plasmaScript.Contains('"-DKDE_WINDOWS_SHELL_ROOT=$buildRoot"')) {
+    throw 'plasma.ps1 must pass the fallback shell output root into CMake.'
 }
-if ($buildScript.Contains('& $Compiler') -or $buildScript.Contains('& $linker')) {
-    throw 'Do not invoke cl.exe/link.exe directly through Windows PowerShell 5.1 argument reconstruction.'
+if (-not $plasmaScript.Contains('KDEWindowsShell.exe')) {
+    throw 'plasma.ps1 must validate the CMake-built fallback shell output.'
 }
-if (-not $buildScript.Contains('& cmd.exe /d /s /c $compileCommand')) {
-    throw 'MSVC source compilation must be executed through cmd.exe as one native command line.'
+
+foreach ($forbidden in @('cl.exe', 'clang-cl.exe', 'g++.exe', 'link.exe', '/Fo', '/Fe', '/OUT:')) {
+    if ($buildScript.Contains($forbidden)) {
+        throw "Tools/build.ps1 must not maintain a second manual compiler/linker path: found $forbidden"
+    }
 }
-if (-not $buildScript.Contains('& cmd.exe /d /s /c $linkCommand')) {
-    throw 'MSVC linking must be executed through cmd.exe as one native command line.'
-}
-if (-not $buildScript.Contains("Write-Host 'MSVC shell build: cmd.exe compile/link'")) {
-    throw 'The shell build must print its MSVC execution path so stale local scripts are immediately visible.'
+if (-not $buildScript.Contains("Tools\plasma.ps1")) {
+    throw 'Tools/build.ps1 must delegate the Windows build to the unified CMake/Plasma build.'
 }
