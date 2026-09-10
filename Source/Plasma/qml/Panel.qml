@@ -14,9 +14,9 @@ Window {
     readonly property int screenHeight: displayData && displayData.height ? displayData.height : Screen.height
 
     x: screenX + PlasmaTheme.panelMargin
-    y: screenY + screenHeight - height - PlasmaTheme.panelMargin
+    y: screenY + screenHeight - height
     width: Math.max(1, screenWidth - PlasmaTheme.panelMargin * 2)
-    height: PlasmaTheme.panelHeight
+    height: PlasmaTheme.panelHeight + PlasmaTheme.panelMargin
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
 
@@ -28,7 +28,11 @@ Window {
     signal settingsRequested(int page)
 
     PlasmaSurface {
-        anchors.fill: parent
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: PlasmaTheme.panelMargin
         radius: 6
 
         RowLayout {
