@@ -6,10 +6,10 @@ import QtQuick.Window
 Window {
     id: runner
     visible: false
-    width: 620
-    height: 360
+    width: 660
+    height: 310
     x: Screen.virtualX + Math.round((Screen.width - width) / 2)
-    y: Screen.virtualY + 90
+    y: Screen.virtualY + 72
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
 
@@ -17,8 +17,8 @@ Window {
 
     onVisibleChanged: {
         if (visible) {
+            query.text = ""
             query.forceActiveFocus()
-            query.selectAll()
         }
     }
 
@@ -33,72 +33,103 @@ Window {
             dismissed()
     }
 
-    Rectangle {
+    Keys.onEscapePressed: dismissed()
+
+    PlasmaSurface {
         anchors.fill: parent
-        radius: 12
-        color: "#f223272b"
-        border.color: "#5a596168"
-        border.width: 1
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 14
-            spacing: 10
+            anchors.margins: 8
+            spacing: 6
 
-            TextField {
-                id: query
+            RowLayout {
                 Layout.fillWidth: true
-                placeholderText: "Search or run a command…"
-                color: "#eff0f1"
-                placeholderTextColor: "#929aa1"
-                selectByMouse: true
-                font.pixelSize: 18
-                background: Rectangle {
-                    radius: 8
-                    color: "#30363c"
-                    border.color: query.activeFocus ? "#3daee9" : "#4b535a"
+                Layout.preferredHeight: 46
+                spacing: 8
+
+                Image {
+                    Layout.preferredWidth: 30
+                    Layout.preferredHeight: 30
+                    source: "image://shell/path/system-search"
+                    visible: false
                 }
-                Keys.onEscapePressed: runner.dismissed()
-                Keys.onReturnPressed: runner.executeCurrent()
+
+                Label {
+                    text: "⌕"
+                    color: PlasmaTheme.highlight
+                    font.pixelSize: 25
+                }
+
+                TextField {
+                    id: query
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    placeholderText: "Search Plasma"
+                    color: PlasmaTheme.text
+                    placeholderTextColor: PlasmaTheme.secondaryText
+                    selectByMouse: true
+                    font.family: PlasmaTheme.fontFamily
+                    font.pixelSize: 17
+                    leftPadding: 10
+                    rightPadding: 10
+                    background: Rectangle {
+                        radius: PlasmaTheme.itemRadius
+                        color: PlasmaTheme.view
+                        border.color: query.activeFocus ? PlasmaTheme.highlight : PlasmaTheme.frame
+                        border.width: query.activeFocus ? 2 : 1
+                    }
+                    Keys.onEscapePressed: runner.dismissed()
+                    Keys.onReturnPressed: runner.executeCurrent()
+                }
             }
 
-            ScrollView {
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: PlasmaTheme.separator
+            }
+
+            ListView {
+                id: resultList
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
+                spacing: 1
+                model: PlasmaBackend.searchApplications(query.text)
 
-                ListView {
-                    id: resultList
-                    model: PlasmaBackend.searchApplications(query.text)
-                    spacing: 3
-
-                    delegate: ItemDelegate {
-                        required property var modelData
-                        width: resultList.width
-                        height: 44
-                        text: modelData.name
-                        icon.source: "image://shell/path/" + encodeURIComponent(modelData.iconPath.length > 0 ? modelData.iconPath : modelData.executable)
-                        icon.width: 24
-                        icon.height: 24
-                        display: AbstractButton.TextBesideIcon
-                        palette.buttonText: "#eff0f1"
-                        onClicked: {
-                            PlasmaBackend.launchApplication(modelData.id)
-                            runner.dismissed()
-                        }
-                        background: Rectangle {
-                            radius: 7
-                            color: parent.hovered ? "#374047" : "transparent"
-                        }
+                delegate: PlasmaListDelegate {
+                    required property var modelData
+                    width: resultList.width
+                    height: 42
+                    text: modelData.name
+                    icon.source: "image://shell/path/" + encodeURIComponent(modelData.iconPath.length > 0 ? modelData.iconPath : modelData.executable)
+                    icon.width: 24
+                    icon.height: 24
+                    display: AbstractButton.TextBesideIcon
+                    onClicked: {
+                        PlasmaBackend.launchApplication(modelData.id)
+                        runner.dismissed()
                     }
                 }
             }
 
-            Label {
+            RowLayout {
                 Layout.fillWidth: true
-                text: query.text.length > 0 && resultList.count === 0 ? "Enter to run command or path" : "Alt+Space"
-                color: "#90989f"
-                font.pixelSize: 11
+                Layout.preferredHeight: 22
+                Label {
+                    Layout.fillWidth: true
+                    text: query.text.length > 0 && resultList.count === 0 ? "Press Enter to run command or path" : "Type to search applications"
+                    color: PlasmaTheme.secondaryText
+                    font.family: PlasmaTheme.fontFamily
+                    font.pixelSize: 10
+                }
+                Label {
+                    text: "Alt+Space"
+                    color: PlasmaTheme.disabledText
+                    font.family: PlasmaTheme.fontFamily
+                    font.pixelSize: 10
+                }
             }
         }
     }
