@@ -4,12 +4,11 @@ import QtQuick.Layouts
 
 ColumnLayout {
     id: root
-    spacing: 14
+    spacing: 12
     property var state: ({ "available": false, "discoverable": false, "radioName": "", "devices": [] })
     property bool scanning: false
 
     function refresh() { state = PlasmaBackend.bluetoothState() }
-
     function scan() {
         scanning = true
         state = PlasmaBackend.bluetoothScan()
@@ -25,21 +24,29 @@ ColumnLayout {
         onTriggered: root.refresh()
     }
 
-    Label { text: "Bluetooth"; color: "#eff0f1"; font.pixelSize: 28; font.bold: true }
+    Label {
+        text: "Bluetooth"
+        color: PlasmaTheme.text
+        font.family: PlasmaTheme.fontFamily
+        font.pixelSize: 20
+        font.bold: true
+    }
 
     RowLayout {
         Layout.fillWidth: true
         ColumnLayout {
             Layout.fillWidth: true
+            spacing: 1
             Label {
                 text: root.state.available ? (root.state.radioName || "Bluetooth radio") : "No Bluetooth radio"
-                color: "#eff0f1"
-                font.pixelSize: 16
+                color: PlasmaTheme.text
+                font.pixelSize: 14
                 font.bold: true
             }
             Label {
-                text: root.state.available ? "Paired, remembered, connected and discovered devices" : "Bluetooth is unavailable on this system."
-                color: "#aeb5ba"
+                text: root.state.available ? "Connected and remembered devices" : "Bluetooth is unavailable on this system."
+                color: PlasmaTheme.secondaryText
+                font.pixelSize: 10
             }
         }
         Button {
@@ -59,47 +66,71 @@ ColumnLayout {
         }
     }
 
-    ScrollView {
+    Rectangle {
+        Layout.fillWidth: true
+        Layout.preferredHeight: 1
+        color: PlasmaTheme.separator
+    }
+
+    ListView {
         Layout.fillWidth: true
         Layout.fillHeight: true
         clip: true
+        model: root.state.devices || []
+        spacing: 4
 
-        ListView {
-            model: root.state.devices || []
-            spacing: 6
-            delegate: Rectangle {
-                required property var modelData
-                width: ListView.view.width
-                height: 66
-                radius: 8
-                color: "#2b3035"
-                RowLayout {
-                    anchors.fill: parent
-                    anchors.margins: 12
-                    ColumnLayout {
-                        Layout.fillWidth: true
-                        Label { text: modelData.name; color: "#eff0f1"; font.bold: true }
-                        Label { text: modelData.id; color: "#8f989f"; font.pixelSize: 11 }
-                    }
+        delegate: PlasmaSurface {
+            required property var modelData
+            width: ListView.view.width
+            height: 60
+            viewStyle: true
+            selected: modelData.connected
+
+            RowLayout {
+                anchors.fill: parent
+                anchors.margins: 10
+                spacing: 8
+
+                Rectangle {
+                    Layout.preferredWidth: 30
+                    Layout.preferredHeight: 30
+                    radius: 15
+                    color: PlasmaTheme.highlightSoft
                     Label {
-                        text: modelData.connected ? "Connected" : modelData.paired ? "Paired" : modelData.remembered ? "Remembered" : "Discovered"
-                        color: modelData.connected ? "#3daee9" : "#b8bec3"
+                        anchors.centerIn: parent
+                        text: "B"
+                        color: PlasmaTheme.highlight
+                        font.bold: true
                     }
-                    Button {
-                        visible: !modelData.paired && !modelData.remembered
-                        text: "Pair"
-                        onClicked: {
-                            PlasmaBackend.pairBluetooth(modelData.id)
-                            root.refresh()
-                        }
+                }
+
+                ColumnLayout {
+                    Layout.fillWidth: true
+                    spacing: 1
+                    Label { text: modelData.name; color: PlasmaTheme.text; font.bold: true; font.pixelSize: 12 }
+                    Label { text: modelData.id; color: PlasmaTheme.secondaryText; font.pixelSize: 9 }
+                }
+
+                Label {
+                    text: modelData.connected ? "Connected" : modelData.paired ? "Paired" : modelData.remembered ? "Remembered" : "Discovered"
+                    color: modelData.connected ? PlasmaTheme.highlight : PlasmaTheme.secondaryText
+                    font.pixelSize: 10
+                }
+
+                Button {
+                    visible: !modelData.paired && !modelData.remembered
+                    text: "Pair"
+                    onClicked: {
+                        PlasmaBackend.pairBluetooth(modelData.id)
+                        root.refresh()
                     }
-                    Button {
-                        visible: modelData.paired || modelData.remembered
-                        text: "Remove"
-                        onClicked: {
-                            PlasmaBackend.removeBluetooth(modelData.id)
-                            root.refresh()
-                        }
+                }
+                Button {
+                    visible: modelData.paired || modelData.remembered
+                    text: "Remove"
+                    onClicked: {
+                        PlasmaBackend.removeBluetooth(modelData.id)
+                        root.refresh()
                     }
                 }
             }
@@ -107,9 +138,9 @@ ColumnLayout {
     }
 
     Label {
-        text: "Pairing uses the Windows Bluetooth authentication wizard; removing a device clears its Windows pairing and cached services."
-        color: "#808990"
-        font.pixelSize: 11
+        text: "Pairing uses the Windows Bluetooth authentication UI."
+        color: PlasmaTheme.disabledText
+        font.pixelSize: 10
         Layout.fillWidth: true
         wrapMode: Text.Wrap
     }
