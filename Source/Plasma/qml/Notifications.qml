@@ -6,10 +6,10 @@ import QtQuick.Window
 Window {
     id: notificationsWindow
     visible: PlasmaBackend.notifications.length > 0
-    width: 380
-    height: Math.min(360, notificationColumn.implicitHeight + 16)
-    x: Screen.virtualX + Screen.width - width - 12
-    y: Screen.virtualY + Screen.height - 48 - height - 12
+    width: 360
+    height: Math.min(390, notificationColumn.implicitHeight + 10)
+    x: Screen.virtualX + Screen.width - width - PlasmaTheme.panelMargin
+    y: Screen.virtualY + Screen.height - PlasmaTheme.panelHeight - PlasmaTheme.panelMargin * 3 - height
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool | Qt.WindowDoesNotAcceptFocus
     color: "transparent"
 
@@ -18,98 +18,88 @@ Window {
         anchors.left: parent.left
         anchors.right: parent.right
         anchors.bottom: parent.bottom
-        spacing: 8
+        spacing: 6
 
         Repeater {
             model: PlasmaBackend.notifications
 
-            delegate: Rectangle {
+            delegate: PlasmaSurface {
                 required property var modelData
                 width: notificationColumn.width
-                implicitHeight: content.implicitHeight + 20
-                radius: 10
-                color: "#f22b3035"
-                border.color: "#5a626a72"
-                border.width: 1
+                implicitHeight: content.implicitHeight + 18
 
                 RowLayout {
                     id: content
                     anchors.fill: parent
-                    anchors.margins: 10
-                    spacing: 10
+                    anchors.margins: 9
+                    spacing: 9
 
                     Rectangle {
-                        Layout.preferredWidth: 36
-                        Layout.preferredHeight: 36
+                        Layout.preferredWidth: 34
+                        Layout.preferredHeight: 34
                         Layout.alignment: Qt.AlignTop
-                        radius: 8
-                        color: "#343c43"
+                        radius: PlasmaTheme.itemRadius
+                        color: PlasmaTheme.highlightSoft
 
                         Label {
                             anchors.centerIn: parent
                             text: "i"
                             font.bold: true
-                            font.pixelSize: 18
-                            color: "#3daee9"
+                            font.pixelSize: 16
+                            color: PlasmaTheme.highlight
                         }
                     }
 
                     ColumnLayout {
                         Layout.fillWidth: true
-                        spacing: 3
+                        spacing: 2
 
                         RowLayout {
                             Layout.fillWidth: true
                             Label {
                                 Layout.fillWidth: true
-                                text: modelData.title.length > 0 ? modelData.title : modelData.source
-                                color: "#eff0f1"
-                                font.bold: true
-                                font.pixelSize: 13
+                                text: modelData.source.length > 0 ? modelData.source : "Notification"
+                                color: PlasmaTheme.secondaryText
+                                font.family: PlasmaTheme.fontFamily
+                                font.pixelSize: 10
                                 elide: Text.ElideRight
                             }
                             Label {
                                 text: modelData.timestamp
-                                color: "#9da5ab"
+                                color: PlasmaTheme.disabledText
                                 font.pixelSize: 10
                             }
                         }
 
                         Label {
-                            visible: modelData.source.length > 0 && modelData.title.length > 0
-                            text: modelData.source
-                            color: "#9da5ab"
-                            font.pixelSize: 10
-                            elide: Text.ElideRight
+                            visible: modelData.title.length > 0
                             Layout.fillWidth: true
+                            text: modelData.title
+                            color: PlasmaTheme.text
+                            font.family: PlasmaTheme.fontFamily
+                            font.bold: true
+                            font.pixelSize: 12
+                            elide: Text.ElideRight
                         }
 
                         Label {
-                            text: modelData.body
-                            color: "#d9dcde"
-                            font.pixelSize: 12
-                            wrapMode: Text.Wrap
                             Layout.fillWidth: true
+                            text: modelData.body
+                            color: PlasmaTheme.text
+                            font.family: PlasmaTheme.fontFamily
+                            font.pixelSize: 11
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 4
+                            elide: Text.ElideRight
                         }
                     }
 
-                    ToolButton {
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 28
+                    PlasmaIconButton {
                         Layout.alignment: Qt.AlignTop
-                        text: "×"
+                        implicitWidth: 28
+                        implicitHeight: 28
+                        icon.name: "window-close"
                         onClicked: PlasmaBackend.dismissNotification(modelData.id)
-                        background: Rectangle {
-                            radius: 6
-                            color: parent.hovered ? "#424a51" : "transparent"
-                        }
-                        contentItem: Label {
-                            text: parent.text
-                            color: "#cfd3d6"
-                            horizontalAlignment: Text.AlignHCenter
-                            verticalAlignment: Text.AlignVCenter
-                            font.pixelSize: 16
-                        }
                     }
                 }
             }
