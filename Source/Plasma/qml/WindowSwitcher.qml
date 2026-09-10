@@ -70,14 +70,30 @@ Window {
                                 color: PlasmaTheme.alternate
                                 border.color: PlasmaTheme.separator
                                 border.width: 1
+                                clip: true
 
                                 Image {
+                                    id: fallbackIcon
                                     anchors.centerIn: parent
-                                    width: 56
-                                    height: 56
+                                    width: 54
+                                    height: 54
                                     source: "image://shell/window/" + modelData.id
                                     fillMode: Image.PreserveAspectFit
                                     smooth: true
+                                }
+
+                                Image {
+                                    id: thumbnail
+                                    anchors.fill: parent
+                                    anchors.margins: 1
+                                    source: "image://shell/thumbnail/" + modelData.id
+                                    sourceSize.width: 176
+                                    sourceSize.height: 100
+                                    fillMode: Image.PreserveAspectFit
+                                    smooth: true
+                                    asynchronous: true
+                                    cache: false
+                                    visible: status === Image.Ready
                                 }
                             }
 
