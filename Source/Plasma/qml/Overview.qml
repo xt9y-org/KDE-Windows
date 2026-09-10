@@ -107,6 +107,7 @@ Window {
                             color: hover.containsMouse ? PlasmaTheme.buttonHover : PlasmaTheme.alternate
                             border.color: PlasmaTheme.separator
                             border.width: 1
+                            clip: true
 
                             Image {
                                 anchors.centerIn: parent
@@ -115,6 +116,19 @@ Window {
                                 source: "image://shell/window/" + modelData.id
                                 fillMode: Image.PreserveAspectFit
                                 smooth: true
+                            }
+
+                            Image {
+                                anchors.fill: parent
+                                anchors.margins: 1
+                                source: "image://shell/thumbnail/" + modelData.id
+                                sourceSize.width: 250
+                                sourceSize.height: 122
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                                asynchronous: true
+                                cache: false
+                                visible: status === Image.Ready
                             }
 
                             MouseArea {
