@@ -11,32 +11,64 @@ Window {
     width: Screen.width
     height: Screen.height
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-    color: "#d91d2024"
+    color: PlasmaTheme.dark ? "#dc171a1d" : "#dce8ecef"
 
     signal dismissed()
 
     Keys.onEscapePressed: dismissed()
-
-    Component.onCompleted: if (visible) requestActivate()
-    onVisibleChanged: if (visible) requestActivate()
+    onVisibleChanged: if (visible) {
+        requestActivate()
+        overviewSearch.text = ""
+        overviewSearch.forceActiveFocus()
+    }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: 42
-        spacing: 22
+        anchors.margins: 34
+        spacing: 20
 
         RowLayout {
             Layout.fillWidth: true
+            spacing: 12
+
             Label {
                 text: "Overview"
-                color: "#eff0f1"
-                font.pixelSize: 28
-                font.bold: true
-                Layout.fillWidth: true
-            }
-            ToolButton {
-                text: "×"
+                color: PlasmaTheme.text
+                font.family: PlasmaTheme.fontFamily
                 font.pixelSize: 22
+                font.bold: true
+            }
+
+            Item { Layout.fillWidth: true }
+
+            TextField {
+                id: overviewSearch
+                Layout.preferredWidth: Math.min(420, overview.width * 0.38)
+                Layout.preferredHeight: 38
+                placeholderText: "Search…"
+                color: PlasmaTheme.text
+                placeholderTextColor: PlasmaTheme.secondaryText
+                selectByMouse: true
+                background: Rectangle {
+                    radius: PlasmaTheme.itemRadius
+                    color: PlasmaTheme.view
+                    border.color: overviewSearch.activeFocus ? PlasmaTheme.highlight : PlasmaTheme.frame
+                    border.width: overviewSearch.activeFocus ? 2 : 1
+                }
+                Keys.onEscapePressed: overview.dismissed()
+                Keys.onReturnPressed: {
+                    const results = PlasmaBackend.searchApplications(text)
+                    if (results.length > 0) {
+                        PlasmaBackend.launchApplication(results[0].id)
+                        overview.dismissed()
+                    }
+                }
+            }
+
+            Item { Layout.fillWidth: true }
+
+            PlasmaIconButton {
+                icon.name: "window-close"
                 onClicked: overview.dismissed()
             }
         }
@@ -45,60 +77,92 @@ Window {
             id: grid
             Layout.fillWidth: true
             Layout.fillHeight: true
-            cellWidth: 280
-            cellHeight: 180
+            cellWidth: 286
+            cellHeight: 188
             model: PlasmaBackend.windows
             clip: true
 
-            delegate: Rectangle {
+            delegate: Item {
+                id: windowDelegate
                 required property var modelData
-                width: 260
-                height: 160
-                radius: 12
-                color: mouse.containsMouse ? "#48535c" : "#30363c"
-                border.color: modelData.active ? "#3daee9" : "#525b63"
-                border.width: modelData.active ? 2 : 1
+                width: 274
+                height: 176
 
-                ColumnLayout {
+                PlasmaSurface {
                     anchors.fill: parent
-                    anchors.margins: 14
-                    spacing: 8
+                    anchors.margins: 4
+                    viewStyle: true
+                    selected: modelData.active
+                    radius: 7
 
-                    Rectangle {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        radius: 8
-                        color: "#252a2e"
+                    ColumnLayout {
+                        anchors.fill: parent
+                        anchors.margins: 10
+                        spacing: 8
 
-                        Image {
-                            anchors.centerIn: parent
-                            width: 64
-                            height: 64
-                            source: "image://shell/window/" + modelData.id
-                            fillMode: Image.PreserveAspectFit
-                            smooth: true
+                        Rectangle {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            radius: PlasmaTheme.itemRadius
+                            color: hover.containsMouse ? PlasmaTheme.buttonHover : PlasmaTheme.alternate
+                            border.color: PlasmaTheme.separator
+                            border.width: 1
+
+                            Image {
+                                anchors.centerIn: parent
+                                width: 64
+                                height: 64
+                                source: "image://shell/window/" + modelData.id
+                                fillMode: Image.PreserveAspectFit
+                                smooth: true
+                            }
+
+                            MouseArea {
+                                id: hover
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: {
+                                    PlasmaBackend.activateWindow(modelData.id)
+                                    overview.dismissed()
+                                }
+                            }
                         }
-                    }
 
-                    Label {
-                        Layout.fillWidth: true
-                        text: modelData.title
-                        color: "#eff0f1"
-                        elide: Text.ElideRight
-                        font.pixelSize: 13
-                    }
-                }
-
-                MouseArea {
-                    id: mouse
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: {
-                        PlasmaBackend.activateWindow(modelData.id)
-                        overview.dismissed()
+                        RowLayout {
+                            Layout.fillWidth: true
+                            spacing: 6
+                            Image {
+                                Layout.preferredWidth: 20
+                                Layout.preferredHeight: 20
+                                source: "image://shell/window/" + modelData.id
+                                fillMode: Image.PreserveAspectFit
+                            }
+                            Label {
+                                Layout.fillWidth: true
+                                text: modelData.title
+                                color: PlasmaTheme.text
+                                font.family: PlasmaTheme.fontFamily
+                                font.pixelSize: 11
+                                elide: Text.ElideRight
+                            }
+                            PlasmaIconButton {
+                                implicitWidth: 26
+                                implicitHeight: 26
+                                icon.name: "window-close"
+                                onClicked: PlasmaBackend.closeWindow(modelData.id)
+                            }
+                        }
                     }
                 }
             }
+        }
+
+        RowLayout {
+            Layout.alignment: Qt.AlignHCenter
+            spacing: 4
+            Button { text: "Previous Desktop"; onClicked: PlasmaBackend.virtualDesktopLeft() }
+            Button { text: "New Desktop"; onClicked: PlasmaBackend.virtualDesktopCreate() }
+            Button { text: "Next Desktop"; onClicked: PlasmaBackend.virtualDesktopRight() }
         }
     }
 }
