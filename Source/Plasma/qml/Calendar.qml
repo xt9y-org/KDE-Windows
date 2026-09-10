@@ -7,7 +7,7 @@ Window {
     id: calendar
     visible: false
     width: 360
-    height: 360
+    height: 380
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
 
@@ -17,8 +17,8 @@ Window {
     property date shownMonth: new Date()
     signal dismissed()
 
-    x: panelX + panelWidth - width - 8
-    y: panelY - height - 8
+    x: panelX + panelWidth - width
+    y: panelY - height - 6
 
     function shiftMonth(delta) {
         shownMonth = new Date(shownMonth.getFullYear(), shownMonth.getMonth() + delta, 1)
@@ -33,39 +33,57 @@ Window {
 
     Keys.onEscapePressed: dismissed()
 
-    Rectangle {
+    PlasmaSurface {
         anchors.fill: parent
-        radius: 12
-        color: "#f223272b"
-        border.color: "#5a596168"
-        border.width: 1
 
         ColumnLayout {
             anchors.fill: parent
-            anchors.margins: 14
-            spacing: 10
+            anchors.margins: 10
+            spacing: 6
 
             RowLayout {
                 Layout.fillWidth: true
-                ToolButton { text: "‹"; onClicked: calendar.shiftMonth(-1) }
+                Layout.preferredHeight: 38
+
                 Label {
                     Layout.fillWidth: true
                     text: Qt.formatDate(calendar.shownMonth, "MMMM yyyy")
-                    horizontalAlignment: Text.AlignHCenter
-                    color: "#eff0f1"
-                    font.pixelSize: 17
+                    color: PlasmaTheme.text
+                    font.family: PlasmaTheme.fontFamily
+                    font.pixelSize: 15
                     font.bold: true
                 }
-                ToolButton { text: "›"; onClicked: calendar.shiftMonth(1) }
+
+                PlasmaIconButton {
+                    icon.name: "go-previous"
+                    onClicked: calendar.shiftMonth(-1)
+                    ToolTip.visible: hovered
+                    ToolTip.text: "Previous Month"
+                }
+                PlasmaIconButton {
+                    icon.name: "go-next"
+                    onClicked: calendar.shiftMonth(1)
+                    ToolTip.visible: hovered
+                    ToolTip.text: "Next Month"
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: PlasmaTheme.separator
             }
 
             DayOfWeekRow {
                 Layout.fillWidth: true
+                Layout.preferredHeight: 28
                 locale: Qt.locale()
                 delegate: Label {
                     required property var model
                     text: model.shortName
-                    color: "#9da5ab"
+                    color: PlasmaTheme.secondaryText
+                    font.family: PlasmaTheme.fontFamily
+                    font.pixelSize: 10
                     horizontalAlignment: Text.AlignHCenter
                     verticalAlignment: Text.AlignVCenter
                 }
@@ -79,24 +97,48 @@ Window {
                 year: calendar.shownMonth.getFullYear()
                 locale: Qt.locale()
 
-                delegate: Rectangle {
+                delegate: Item {
                     required property var model
-                    color: model.today ? "#3daee9" : "transparent"
-                    radius: 7
-                    opacity: model.month === monthGrid.month ? 1.0 : 0.45
 
-                    Label {
+                    Rectangle {
                         anchors.centerIn: parent
-                        text: model.day
-                        color: model.today ? "white" : "#eff0f1"
+                        width: 30
+                        height: 30
+                        radius: 15
+                        color: model.today ? PlasmaTheme.highlight : "transparent"
+
+                        Label {
+                            anchors.centerIn: parent
+                            text: model.day
+                            color: model.today ? PlasmaTheme.highlightedText : PlasmaTheme.text
+                            opacity: model.month === monthGrid.month ? 1.0 : 0.45
+                            font.family: PlasmaTheme.fontFamily
+                            font.pixelSize: 11
+                        }
                     }
                 }
             }
 
-            Button {
-                Layout.alignment: Qt.AlignHCenter
-                text: "Today"
-                onClicked: calendar.shownMonth = new Date()
+            Rectangle {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 1
+                color: PlasmaTheme.separator
+            }
+
+            RowLayout {
+                Layout.fillWidth: true
+                Layout.preferredHeight: 34
+                Label {
+                    Layout.fillWidth: true
+                    text: Qt.formatDate(new Date(), "dddd, d MMMM")
+                    color: PlasmaTheme.secondaryText
+                    font.family: PlasmaTheme.fontFamily
+                    font.pixelSize: 11
+                }
+                Button {
+                    text: "Today"
+                    onClicked: calendar.shownMonth = new Date()
+                }
             }
         }
     }
