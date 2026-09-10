@@ -11,7 +11,7 @@ Window {
     width: displayData && displayData.width ? displayData.width : Screen.width
     height: displayData && displayData.height ? displayData.height : Screen.height
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnBottomHint
-    color: "#1b1e20"
+    color: PlasmaTheme.window
 
     property var displayData: ({})
     property bool showIcons: true
@@ -20,7 +20,12 @@ Window {
 
     Rectangle {
         anchors.fill: parent
-        color: "#1b1e20"
+        color: PlasmaTheme.window
+
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: PlasmaTheme.dark ? "#263743" : "#dfeef7" }
+            GradientStop { position: 1.0; color: PlasmaTheme.dark ? "#18242c" : "#b9d7e8" }
+        }
     }
 
     Image {
@@ -37,33 +42,38 @@ Window {
         id: desktopGrid
         visible: desktop.showIcons
         anchors.fill: parent
-        anchors.margins: 12
-        anchors.bottomMargin: 62
-        cellWidth: 96
-        cellHeight: 108
+        anchors.leftMargin: 8
+        anchors.topMargin: 8
+        anchors.rightMargin: 8
+        anchors.bottomMargin: PlasmaTheme.panelHeight + PlasmaTheme.panelMargin * 2 + 8
+        cellWidth: 86
+        cellHeight: 96
         model: desktop.showIcons ? PlasmaBackend.desktopItems : []
         flow: GridView.FlowTopToBottom
         layoutDirection: Qt.LeftToRight
         clip: true
 
         delegate: Item {
+            id: iconDelegate
             required property var modelData
-            width: 92
-            height: 104
+            width: 82
+            height: 92
 
             Rectangle {
                 anchors.fill: parent
-                radius: 7
-                color: mouse.containsMouse ? "#553b454d" : "transparent"
+                radius: PlasmaTheme.itemRadius
+                color: mouse.containsMouse ? "#663daee9" : "transparent"
+                border.color: mouse.containsMouse ? "#aa3daee9" : "transparent"
+                border.width: 1
             }
 
             Image {
                 id: icon
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.top: parent.top
-                anchors.topMargin: 8
-                width: 50
-                height: 50
+                anchors.topMargin: 7
+                width: 48
+                height: 48
                 source: modelData.icon
                 fillMode: Image.PreserveAspectFit
                 smooth: true
@@ -73,16 +83,17 @@ Window {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: icon.bottom
-                anchors.topMargin: 5
+                anchors.topMargin: 3
                 horizontalAlignment: Text.AlignHCenter
                 text: modelData.name
                 color: "white"
-                font.pixelSize: 12
+                font.family: PlasmaTheme.fontFamily
+                font.pixelSize: 11
                 wrapMode: Text.Wrap
                 maximumLineCount: 2
                 elide: Text.ElideRight
                 style: Text.Outline
-                styleColor: "#aa000000"
+                styleColor: "#cc000000"
             }
 
             MouseArea {
@@ -108,19 +119,25 @@ Window {
     Menu {
         id: desktopMenu
         MenuItem {
-            text: "New Folder"
+            text: "Create New Folder…"
+            icon.name: "folder-new"
             enabled: desktop.showIcons
             onTriggered: PlasmaBackend.createDesktopFolder()
         }
         MenuItem {
             text: "Open Desktop in Dolphin"
+            icon.name: "system-file-manager"
             enabled: desktop.showIcons
             onTriggered: PlasmaBackend.openDesktopFolder()
         }
         MenuSeparator {}
-        MenuItem { text: "Refresh Desktop"; onTriggered: PlasmaBackend.reloadDesktop() }
-        MenuItem { text: "Configure Desktop and Wallpaper…"; onTriggered: desktop.settingsRequested() }
+        MenuItem { text: "Refresh Desktop"; icon.name: "view-refresh"; onTriggered: PlasmaBackend.reloadDesktop() }
+        MenuItem {
+            text: "Configure Desktop and Wallpaper…"
+            icon.name: "configure"
+            onTriggered: desktop.settingsRequested()
+        }
         MenuSeparator {}
-        MenuItem { text: "Open Runner"; onTriggered: desktop.runnerRequested() }
+        MenuItem { text: "Show KRunner"; icon.name: "system-search"; onTriggered: desktop.runnerRequested() }
     }
 }
